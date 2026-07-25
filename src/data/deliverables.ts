@@ -1,0 +1,102 @@
+import type { Deliverable } from "./types";
+
+export const deliverables: Deliverable[] = [
+  {
+    id: "d-1",
+    projectId: "prj-portal",
+    title: "Design system v1.0",
+    description: "Tokens, components, and usage guidelines.",
+    dueDate: "2026-05-15",
+    submissionStatus: "submitted",
+    approvalStatus: "approved",
+    version: 3,
+  },
+  {
+    id: "d-2",
+    projectId: "prj-portal",
+    title: "Beta build package",
+    description: "Signed build with release notes.",
+    dueDate: "2026-08-01",
+    submissionStatus: "not_submitted",
+    approvalStatus: "not_started",
+    version: 0,
+  },
+  {
+    id: "d-3",
+    projectId: "prj-portal",
+    title: "Accessibility audit report",
+    description: "WCAG 2.1 AA audit findings.",
+    dueDate: "2026-07-10",
+    submissionStatus: "submitted",
+    approvalStatus: "changes_requested",
+    version: 2,
+    feedback: "Please include remediation timeline per finding.",
+  },
+
+  {
+    id: "d-4",
+    projectId: "prj-erp",
+    title: "Data mapping specification",
+    description: "Field-level mapping with transformation rules.",
+    dueDate: "2026-04-15",
+    submissionStatus: "submitted",
+    approvalStatus: "changes_requested",
+    version: 2,
+    feedback: "AP subledger section needs the updated schema.",
+  },
+  {
+    id: "d-5",
+    projectId: "prj-erp",
+    title: "Reconciliation report — dry run 1",
+    description: "Variance analysis by ledger.",
+    dueDate: "2026-06-05",
+    submissionStatus: "submitted",
+    approvalStatus: "submitted",
+    version: 1,
+  },
+
+  {
+    id: "d-6",
+    projectId: "prj-mobile",
+    title: "Offline sync design doc",
+    description: "Architecture, edge cases, and testing plan.",
+    dueDate: "2026-04-30",
+    submissionStatus: "submitted",
+    approvalStatus: "approved",
+    version: 4,
+  },
+  {
+    id: "d-7",
+    projectId: "prj-mobile",
+    title: "TestFlight build",
+    description: "Distributable iOS build for pilot users.",
+    dueDate: "2026-06-30",
+    submissionStatus: "not_submitted",
+    approvalStatus: "in_progress",
+    version: 0,
+  },
+
+  {
+    id: "d-8",
+    projectId: "prj-cloud",
+    title: "DR runbook",
+    description: "Full DR procedure with role assignments.",
+    dueDate: "2026-06-15",
+    submissionStatus: "submitted",
+    approvalStatus: "submitted",
+    version: 1,
+  },
+  {
+    id: "d-9",
+    projectId: "prj-cloud",
+    title: "Cutover plan",
+    description: "Step-by-step migration plan with rollback triggers.",
+    dueDate: "2026-07-01",
+    submissionStatus: "not_submitted",
+    approvalStatus: "in_progress",
+    version: 0,
+  },
+];
+
+export const deliverablesForProject = (projectId: string) =>
+  deliverables.filter((d) => d.projectId === projectId);

@@ -1,0 +1,77 @@
+import type { ProjectUpdate } from "./types";
+
+export const updates: ProjectUpdate[] = [
+  {
+    id: "u-1",
+    projectId: "prj-portal",
+    title: "Sprint 18 shipped",
+    body: "Account settings and notifications preferences are live in the beta build. Payment method rework blocked pending vendor decision.",
+    authorId: "u-jamal",
+    createdAt: "2026-06-14T09:00:00Z",
+    status: "info",
+    hasAttachment: true,
+  },
+  {
+    id: "u-2",
+    projectId: "prj-portal",
+    title: "Design system frozen for beta",
+    body: "All tokens and core components locked. Any changes now go through the change control process.",
+    authorId: "u-tom",
+    createdAt: "2026-05-20T15:30:00Z",
+    status: "milestone",
+    hasAttachment: false,
+  },
+  {
+    id: "u-3",
+    projectId: "prj-erp",
+    title: "Schema drift discovered in AP",
+    body: "Source schema differs from documentation in three subledger fields. Two-week remap scheduled.",
+    authorId: "u-hana",
+    createdAt: "2026-05-30T11:00:00Z",
+    status: "risk",
+    hasAttachment: true,
+  },
+  {
+    id: "u-4",
+    projectId: "prj-erp",
+    title: "Dry run 1 variance below threshold",
+    body: "Reconciliation variance under 0.4% on all ledgers. Proceeding to plan dry run 2.",
+    authorId: "u-diego",
+    createdAt: "2026-06-08T16:00:00Z",
+    status: "resolved",
+    hasAttachment: true,
+  },
+  {
+    id: "u-5",
+    projectId: "prj-mobile",
+    title: "Sync engine rework in progress",
+    body: "Rebuilding as CRDT-based sync. ETA end of June; scope adjustment being discussed with client.",
+    authorId: "u-priya",
+    createdAt: "2026-06-12T10:30:00Z",
+    status: "risk",
+    hasAttachment: false,
+  },
+  {
+    id: "u-6",
+    projectId: "prj-cloud",
+    title: "Observability stack live",
+    body: "Metrics, logs, and traces flowing for all migrated workloads. Dashboards handed off to ops.",
+    authorId: "u-hana",
+    createdAt: "2026-03-01T09:00:00Z",
+    status: "milestone",
+    hasAttachment: false,
+  },
+  {
+    id: "u-7",
+    projectId: "prj-cloud",
+    title: "DR exercise on track",
+    body: "Runbooks finalised. Exercise scheduled for mid-June with client observers.",
+    authorId: "u-hana",
+    createdAt: "2026-06-10T14:00:00Z",
+    status: "info",
+    hasAttachment: false,
+  },
+];
+
+export const updatesForProject = (projectId: string) =>
+  updates.filter((u) => u.projectId === projectId);
