@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  VENDOR
+}
+
+enum ProjectStatus {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+  COMPLETED
+  ON_HOLD
+}
+
+enum ProjectHealth {
+  GOOD
+  WARNING
+  CRITICAL
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DELAYED
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SubmissionStatus {
+  NOT_SUBMITTED
+  SUBMITTED
+}
+
+enum ApprovalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  DECLINED
+}
+
+model User {
+  id                String          @id
+  email             String          @unique
+  passwordHash      String
+  name              String
+  role              Role
+  organisationName  String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  projectMembers    ProjectMember[]
+  uploadedDocuments Document[]
+}
+
+model Project {
+  id                   String          @id
+  name                 String
+  description          String
+  status               ProjectStatus
+  health               ProjectHealth
+  completionPercentage Int
+  startDate            DateTime
+  endDate              DateTime
+  clientName           String
+  vendorName           String
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  members              ProjectMember[]
+  milestones           Milestone[]
+  tasks                Task[]
+  deliverables         Deliverable[]
+  documents            Document[]
+  clientRequests       ClientRequest[]
+}
+
+model ProjectMember {
+  id        String  @id @default(cuid())
+  userId    String
+  projectId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model Milestone {
+  id          String          @id
+  projectId   String
+  name        String
+  description String
+  dueDate     DateTime
+  status      MilestoneStatus
+  progress    Int
+  ownerName   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+}
+
+model Task {
+  id          String       @id
+  projectId   String
+  milestoneId String?
+  title       String
+  description String
+  assignedTo  String
+  priority    TaskPriority
+  status      TaskStatus
+  dueDate     DateTime
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone   Milestone?   @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+}
+
+model Deliverable {
+  id               String           @id
+  projectId        String
+  title            String
+  description      String
+  dueDate          DateTime
+  submissionStatus SubmissionStatus
+  approvalStatus   ApprovalStatus
+  clientFeedback   String?
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id           String   @id
+  projectId    String
+  fileName     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  filePath     String
+  uploadedById String
+  createdAt    DateTime @default(now())
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+}
+
+model ClientRequest {
+  id          String        @id
+  projectId   String
+  title       String
+  description String
+  priority    TaskPriority
+  status      RequestStatus
+  dueDate     DateTime
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

@@ -2,7 +2,13 @@ node_modules
 dist
 .output
 .vinxi
+.gitignore
+.prettierignore
+AGENTS.md
 pnpm-lock.yaml
 package-lock.json
-bun.lock
+server/package-lock.json
+server/prisma/schema.prisma
+server/prisma/migrations
 routeTree.gen.ts
+src/routes/README.md

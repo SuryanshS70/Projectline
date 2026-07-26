@@ -3,6 +3,58 @@
 All notable Projectline changes should be documented in this file. This changelog covers Codex-led
 repository work and does not replace Git history or Lovable's project history.
 
+## 2026-07-26 - Frontend fixes and simple backend foundation
+
+### Added
+
+- Added npm scripts for frontend type checking, formatting, and Vitest execution.
+- Added five React Testing Library route smoke tests covering the entry route, login, client
+  dashboard, vendor dashboard, and unknown routes.
+- Added a separate `server/` Express and TypeScript package with Zod environment validation, CORS,
+  JSON middleware, consistent error responses, and graceful process shutdown.
+- Added a Prisma SQLite schema for `User`, `Project`, `ProjectMember`, `Milestone`, `Task`,
+  `Deliverable`, `Document`, and `ClientRequest`.
+- Added and applied the initial database migration.
+- Added a repeatable seed with two bcrypt-hashed development users, four projects, memberships,
+  milestones, tasks, deliverables, and client requests.
+- Added `GET /api/health`, `GET /api/projects`, and `GET /api/projects/:projectId`.
+- Added four Supertest API tests covering health, project listing, a missing project, and an unknown
+  route.
+- Added backend development, build, start, typecheck, lint, test, migration, and seed scripts.
+- Replaced the generic Lovable README with local frontend/backend setup and limitation notes.
+
+### Fixed
+
+- Removed the unused `@hookform/resolvers` dependency that prevented a normal npm install.
+- Configured the frontend development script to use port 5173 directly, avoiding npm 11's
+  forwarding of Vite flags as npm configuration.
+- Fixed the `DeliverableStatus` formatting error.
+- Removed React Fast Refresh lint warnings by separating reusable variant definitions from React
+  component exports and keeping internal hooks private.
+- Prevented the frontend Vitest configuration from collecting backend API tests.
+
+### Changed
+
+- Standardised the repository on npm with root and backend lockfiles; removed stale Bun package
+  manager files.
+- Updated `docs/IMPLEMENTATION_PLAN.md` from the earlier enterprise recommendation to the current
+  Express/SQLite MVP foundation and incremental next-phase sequence.
+- Updated `docs/CODEX_HANDOFF.md` to describe the implemented backend and explicitly record that the
+  frontend still uses mock data.
+- Preserved all existing frontend routes, visual design, mock data, and simulated product
+  interactions.
+
+### Validation and known issues
+
+- Frontend lint, typecheck, five tests, and production build pass.
+- Backend lint, typecheck, four API tests, and TypeScript production build pass.
+- The migration and seed complete successfully against local SQLite.
+- Root installation reports five high-severity advisories; backend installation reports eight.
+  Advisory details remain unknown because the environment did not authorise the external registry
+  audit request.
+- The frontend production build retains non-fatal warnings from the upstream Lovable/Vite
+  configuration.
+
 ## 2026-07-26 - Repository audit and implementation planning
 
 ### Added

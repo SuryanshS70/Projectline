@@ -9,64 +9,39 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppVendorSettingsRouteImport } from './routes/_app/vendor/settings'
-import { Route as AppVendorNotificationsRouteImport } from './routes/_app/vendor/notifications'
-import { Route as AppVendorDocumentsRouteImport } from './routes/_app/vendor/documents'
-import { Route as AppVendorDashboardRouteImport } from './routes/_app/vendor/dashboard'
-import { Route as AppClientSettingsRouteImport } from './routes/_app/client/settings'
-import { Route as AppClientNotificationsRouteImport } from './routes/_app/client/notifications'
-import { Route as AppClientDocumentsRouteImport } from './routes/_app/client/documents'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppClientDashboardRouteImport } from './routes/_app/client/dashboard'
-import { Route as AppVendorProjectsIndexRouteImport } from './routes/_app/vendor/projects/index'
+import { Route as AppClientDocumentsRouteImport } from './routes/_app/client/documents'
+import { Route as AppClientNotificationsRouteImport } from './routes/_app/client/notifications'
+import { Route as AppClientSettingsRouteImport } from './routes/_app/client/settings'
+import { Route as AppVendorDashboardRouteImport } from './routes/_app/vendor/dashboard'
+import { Route as AppVendorDocumentsRouteImport } from './routes/_app/vendor/documents'
+import { Route as AppVendorNotificationsRouteImport } from './routes/_app/vendor/notifications'
+import { Route as AppVendorSettingsRouteImport } from './routes/_app/vendor/settings'
 import { Route as AppClientProjectsIndexRouteImport } from './routes/_app/client/projects/index'
-import { Route as AppVendorProjectsProjectIdRouteImport } from './routes/_app/vendor/projects/$projectId'
 import { Route as AppClientProjectsProjectIdRouteImport } from './routes/_app/client/projects/$projectId'
+import { Route as AppVendorProjectsIndexRouteImport } from './routes/_app/vendor/projects/index'
+import { Route as AppVendorProjectsProjectIdRouteImport } from './routes/_app/vendor/projects/$projectId'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppVendorSettingsRoute = AppVendorSettingsRouteImport.update({
-  id: '/vendor/settings',
-  path: '/vendor/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppVendorNotificationsRoute = AppVendorNotificationsRouteImport.update({
-  id: '/vendor/notifications',
-  path: '/vendor/notifications',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppVendorDocumentsRoute = AppVendorDocumentsRouteImport.update({
-  id: '/vendor/documents',
-  path: '/vendor/documents',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppVendorDashboardRoute = AppVendorDashboardRouteImport.update({
-  id: '/vendor/dashboard',
-  path: '/vendor/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClientSettingsRoute = AppClientSettingsRouteImport.update({
-  id: '/client/settings',
-  path: '/client/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClientNotificationsRoute = AppClientNotificationsRouteImport.update({
-  id: '/client/notifications',
-  path: '/client/notifications',
+const AppClientDashboardRoute = AppClientDashboardRouteImport.update({
+  id: '/client/dashboard',
+  path: '/client/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientDocumentsRoute = AppClientDocumentsRouteImport.update({
@@ -74,14 +49,34 @@ const AppClientDocumentsRoute = AppClientDocumentsRouteImport.update({
   path: '/client/documents',
   getParentRoute: () => AppRoute,
 } as any)
-const AppClientDashboardRoute = AppClientDashboardRouteImport.update({
-  id: '/client/dashboard',
-  path: '/client/dashboard',
+const AppClientNotificationsRoute = AppClientNotificationsRouteImport.update({
+  id: '/client/notifications',
+  path: '/client/notifications',
   getParentRoute: () => AppRoute,
 } as any)
-const AppVendorProjectsIndexRoute = AppVendorProjectsIndexRouteImport.update({
-  id: '/vendor/projects/',
-  path: '/vendor/projects/',
+const AppClientSettingsRoute = AppClientSettingsRouteImport.update({
+  id: '/client/settings',
+  path: '/client/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendorDashboardRoute = AppVendorDashboardRouteImport.update({
+  id: '/vendor/dashboard',
+  path: '/vendor/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendorDocumentsRoute = AppVendorDocumentsRouteImport.update({
+  id: '/vendor/documents',
+  path: '/vendor/documents',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendorNotificationsRoute = AppVendorNotificationsRouteImport.update({
+  id: '/vendor/notifications',
+  path: '/vendor/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendorSettingsRoute = AppVendorSettingsRouteImport.update({
+  id: '/vendor/settings',
+  path: '/vendor/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientProjectsIndexRoute = AppClientProjectsIndexRouteImport.update({
@@ -89,16 +84,21 @@ const AppClientProjectsIndexRoute = AppClientProjectsIndexRouteImport.update({
   path: '/client/projects/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppVendorProjectsProjectIdRoute =
-  AppVendorProjectsProjectIdRouteImport.update({
-    id: '/vendor/projects/$projectId',
-    path: '/vendor/projects/$projectId',
-    getParentRoute: () => AppRoute,
-  } as any)
 const AppClientProjectsProjectIdRoute =
   AppClientProjectsProjectIdRouteImport.update({
     id: '/client/projects/$projectId',
     path: '/client/projects/$projectId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppVendorProjectsIndexRoute = AppVendorProjectsIndexRouteImport.update({
+  id: '/vendor/projects/',
+  path: '/vendor/projects/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendorProjectsProjectIdRoute =
+  AppVendorProjectsProjectIdRouteImport.update({
+    id: '/vendor/projects/$projectId',
+    path: '/vendor/projects/$projectId',
     getParentRoute: () => AppRoute,
   } as any)
 
@@ -212,11 +212,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -226,53 +226,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/vendor/settings': {
-      id: '/_app/vendor/settings'
-      path: '/vendor/settings'
-      fullPath: '/vendor/settings'
-      preLoaderRoute: typeof AppVendorSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/vendor/notifications': {
-      id: '/_app/vendor/notifications'
-      path: '/vendor/notifications'
-      fullPath: '/vendor/notifications'
-      preLoaderRoute: typeof AppVendorNotificationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/vendor/documents': {
-      id: '/_app/vendor/documents'
-      path: '/vendor/documents'
-      fullPath: '/vendor/documents'
-      preLoaderRoute: typeof AppVendorDocumentsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/vendor/dashboard': {
-      id: '/_app/vendor/dashboard'
-      path: '/vendor/dashboard'
-      fullPath: '/vendor/dashboard'
-      preLoaderRoute: typeof AppVendorDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/client/settings': {
-      id: '/_app/client/settings'
-      path: '/client/settings'
-      fullPath: '/client/settings'
-      preLoaderRoute: typeof AppClientSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/client/notifications': {
-      id: '/_app/client/notifications'
-      path: '/client/notifications'
-      fullPath: '/client/notifications'
-      preLoaderRoute: typeof AppClientNotificationsRouteImport
+    '/_app/client/dashboard': {
+      id: '/_app/client/dashboard'
+      path: '/client/dashboard'
+      fullPath: '/client/dashboard'
+      preLoaderRoute: typeof AppClientDashboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/client/documents': {
@@ -282,18 +247,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientDocumentsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/client/dashboard': {
-      id: '/_app/client/dashboard'
-      path: '/client/dashboard'
-      fullPath: '/client/dashboard'
-      preLoaderRoute: typeof AppClientDashboardRouteImport
+    '/_app/client/notifications': {
+      id: '/_app/client/notifications'
+      path: '/client/notifications'
+      fullPath: '/client/notifications'
+      preLoaderRoute: typeof AppClientNotificationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/vendor/projects/': {
-      id: '/_app/vendor/projects/'
-      path: '/vendor/projects'
-      fullPath: '/vendor/projects/'
-      preLoaderRoute: typeof AppVendorProjectsIndexRouteImport
+    '/_app/client/settings': {
+      id: '/_app/client/settings'
+      path: '/client/settings'
+      fullPath: '/client/settings'
+      preLoaderRoute: typeof AppClientSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/dashboard': {
+      id: '/_app/vendor/dashboard'
+      path: '/vendor/dashboard'
+      fullPath: '/vendor/dashboard'
+      preLoaderRoute: typeof AppVendorDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/documents': {
+      id: '/_app/vendor/documents'
+      path: '/vendor/documents'
+      fullPath: '/vendor/documents'
+      preLoaderRoute: typeof AppVendorDocumentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/notifications': {
+      id: '/_app/vendor/notifications'
+      path: '/vendor/notifications'
+      fullPath: '/vendor/notifications'
+      preLoaderRoute: typeof AppVendorNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/settings': {
+      id: '/_app/vendor/settings'
+      path: '/vendor/settings'
+      fullPath: '/vendor/settings'
+      preLoaderRoute: typeof AppVendorSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/client/projects/': {
@@ -303,18 +296,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientProjectsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/vendor/projects/$projectId': {
-      id: '/_app/vendor/projects/$projectId'
-      path: '/vendor/projects/$projectId'
-      fullPath: '/vendor/projects/$projectId'
-      preLoaderRoute: typeof AppVendorProjectsProjectIdRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/client/projects/$projectId': {
       id: '/_app/client/projects/$projectId'
       path: '/client/projects/$projectId'
       fullPath: '/client/projects/$projectId'
       preLoaderRoute: typeof AppClientProjectsProjectIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/projects/': {
+      id: '/_app/vendor/projects/'
+      path: '/vendor/projects'
+      fullPath: '/vendor/projects/'
+      preLoaderRoute: typeof AppVendorProjectsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vendor/projects/$projectId': {
+      id: '/_app/vendor/projects/$projectId'
+      path: '/vendor/projects/$projectId'
+      fullPath: '/vendor/projects/$projectId'
+      preLoaderRoute: typeof AppVendorProjectsProjectIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -360,3 +360,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

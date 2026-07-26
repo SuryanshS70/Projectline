@@ -75,11 +75,7 @@ export interface Task {
 }
 
 export type DeliverableStatus =
-  | "not_started"
-  | "in_progress"
-  | "submitted"
-  | "approved"
-  | "changes_requested";
+  "not_started" | "in_progress" | "submitted" | "approved" | "changes_requested";
 
 export interface Deliverable {
   id: string;
