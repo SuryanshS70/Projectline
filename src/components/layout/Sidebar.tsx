@@ -1,12 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOut, ArrowLeftRight } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { Role } from "@/data/types";
 import { navFor } from "@/lib/nav";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { RoleBadge } from "@/components/common/RoleBadge";
-import { getUserById, demoClient, demoVendor } from "@/data/users";
-import { getOrgById } from "@/data/organisations";
-import { clearSession, setSession } from "@/lib/session";
+import { authStore, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -19,8 +17,9 @@ export function Sidebar({ role, onNavigate }: Props) {
   const items = navFor(role);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const user = role === "client" ? demoClient : demoVendor;
-  const org = getOrgById(user.organisationId);
+  const { user } = useAuth();
+
+  if (!user) return null;
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
@@ -67,40 +66,23 @@ export function Sidebar({ role, onNavigate }: Props) {
           <UserAvatar name={user.name} size="sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-            <p className="truncate text-xs text-slate-500">{org?.name}</p>
+            <p className="truncate text-xs text-slate-500">{user.organisationName}</p>
           </div>
           <RoleBadge role={role} />
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => {
-              const next: Role = role === "client" ? "vendor" : "client";
-              setSession(next);
-              navigate({ to: `/${next}/dashboard` });
-            }}
-          >
-            <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />
-            Switch role
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              clearSession();
-              navigate({ to: "/login" });
-            }}
-            aria-label="Log out"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={async () => {
+            await authStore.logout();
+            await navigate({ to: "/login" });
+          }}
+        >
+          <LogOut className="mr-1.5 h-3.5 w-3.5" />
+          Log out
+        </Button>
       </div>
     </aside>
   );
 }
-
-// Prevent unused import
-void getUserById;

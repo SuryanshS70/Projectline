@@ -1,33 +1,56 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
+
+import { EmptyState } from "@/components/common/EmptyState";
+import { ListSkeleton } from "@/components/common/LoadingSkeleton";
 import { PageHeader } from "@/components/common/PageHeader";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { ResponsiveTabs } from "@/components/common/ResponsiveTabs";
-import { ProjectOverview } from "@/components/project/ProjectOverview";
-import { MilestonesList } from "@/components/project/MilestonesList";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { DeliverablesList } from "@/components/project/DeliverablesList";
-import { ProjectDocuments } from "@/components/project/ProjectDocuments";
-import { ProjectUpdates } from "@/components/project/ProjectUpdates";
+import { MilestonesList } from "@/components/project/MilestonesList";
 import { ProjectActivity } from "@/components/project/ProjectActivity";
-import { getProjectById } from "@/data/projects";
+import { ProjectDocuments } from "@/components/project/ProjectDocuments";
+import { ProjectOverview } from "@/components/project/ProjectOverview";
+import { ProjectUpdates } from "@/components/project/ProjectUpdates";
+import { ApiError, getProject } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/client/projects/$projectId")({
-  loader: ({ params }) => {
-    const project = getProjectById(params.projectId);
-    if (!project) throw notFound();
-    return { project };
-  },
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.project.name} — Projectline` : "Project — Projectline" },
-      { name: "description", content: loaderData?.project.description ?? "" },
+      { title: "Project — Projectline" },
+      { name: "description", content: "Project overview and delivery status." },
     ],
   }),
   component: ClientProjectDetail,
 });
 
 function ClientProjectDetail() {
-  const { project } = Route.useLoaderData();
+  const { projectId } = Route.useParams();
+  const { user } = useAuth();
+  const projectQuery = useQuery({
+    queryKey: ["project", user?.id, projectId],
+    queryFn: () => getProject(projectId),
+  });
+
+  if (projectQuery.isPending) return <ListSkeleton rows={5} />;
+  if (projectQuery.isError) {
+    const notFound = projectQuery.error instanceof ApiError && projectQuery.error.status === 404;
+    return (
+      <EmptyState
+        title={notFound ? "Project not found" : "Unable to load project"}
+        description={
+          notFound
+            ? "This project does not exist or is not assigned to your account."
+            : projectQuery.error.message
+        }
+      />
+    );
+  }
+
+  const project = projectQuery.data;
 
   return (
     <div className="space-y-6">
@@ -40,7 +63,7 @@ function ClientProjectDetail() {
 
       <PageHeader
         title={project.name}
-        description={`Delivered by ${project.currentPhase} · Next: ${project.nextMilestone}`}
+        description={`Delivered by ${project.vendorName} · Due ${formatDate(project.endDate)}`}
         actions={<StatusBadge value={project.status} />}
       />
 
@@ -54,12 +77,12 @@ function ClientProjectDetail() {
           {
             value: "milestones",
             label: "Milestones",
-            content: <MilestonesList projectId={project.id} />,
+            content: <MilestonesList items={project.milestones} />,
           },
           {
             value: "deliverables",
             label: "Deliverables",
-            content: <DeliverablesList projectId={project.id} role="client" />,
+            content: <DeliverablesList items={project.deliverables} />,
           },
           {
             value: "documents",

@@ -1,34 +1,57 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
+
+import { EmptyState } from "@/components/common/EmptyState";
+import { ListSkeleton } from "@/components/common/LoadingSkeleton";
 import { PageHeader } from "@/components/common/PageHeader";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { ResponsiveTabs } from "@/components/common/ResponsiveTabs";
-import { ProjectOverview } from "@/components/project/ProjectOverview";
-import { MilestonesList } from "@/components/project/MilestonesList";
-import { DeliverablesList } from "@/components/project/DeliverablesList";
-import { ProjectDocuments } from "@/components/project/ProjectDocuments";
-import { ProjectActivity } from "@/components/project/ProjectActivity";
-import { TasksBoard } from "@/components/project/TasksBoard";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { ClientRequestsList } from "@/components/project/ClientRequestsList";
-import { getProjectById } from "@/data/projects";
+import { DeliverablesList } from "@/components/project/DeliverablesList";
+import { MilestonesList } from "@/components/project/MilestonesList";
+import { ProjectActivity } from "@/components/project/ProjectActivity";
+import { ProjectDocuments } from "@/components/project/ProjectDocuments";
+import { ProjectOverview } from "@/components/project/ProjectOverview";
+import { TasksBoard } from "@/components/project/TasksBoard";
+import { ApiError, getProject } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/vendor/projects/$projectId")({
-  loader: ({ params }) => {
-    const project = getProjectById(params.projectId);
-    if (!project) throw notFound();
-    return { project };
-  },
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.project.name} — Projectline` : "Project — Projectline" },
-      { name: "description", content: loaderData?.project.description ?? "" },
+      { title: "Project — Projectline" },
+      { name: "description", content: "Project overview and delivery status." },
     ],
   }),
   component: VendorProjectDetail,
 });
 
 function VendorProjectDetail() {
-  const { project } = Route.useLoaderData();
+  const { projectId } = Route.useParams();
+  const { user } = useAuth();
+  const projectQuery = useQuery({
+    queryKey: ["project", user?.id, projectId],
+    queryFn: () => getProject(projectId),
+  });
+
+  if (projectQuery.isPending) return <ListSkeleton rows={5} />;
+  if (projectQuery.isError) {
+    const notFound = projectQuery.error instanceof ApiError && projectQuery.error.status === 404;
+    return (
+      <EmptyState
+        title={notFound ? "Project not found" : "Unable to load project"}
+        description={
+          notFound
+            ? "This project does not exist or is not assigned to your account."
+            : projectQuery.error.message
+        }
+      />
+    );
+  }
+
+  const project = projectQuery.data;
 
   return (
     <div className="space-y-6">
@@ -41,7 +64,7 @@ function VendorProjectDetail() {
 
       <PageHeader
         title={project.name}
-        description={`Phase: ${project.currentPhase} · Next: ${project.nextMilestone}`}
+        description={`Client: ${project.clientName} · Due ${formatDate(project.endDate)}`}
         actions={<StatusBadge value={project.status} />}
       />
 
@@ -52,16 +75,20 @@ function VendorProjectDetail() {
             label: "Overview",
             content: <ProjectOverview project={project} role="vendor" />,
           },
-          { value: "tasks", label: "Tasks", content: <TasksBoard projectId={project.id} /> },
+          {
+            value: "tasks",
+            label: "Tasks",
+            content: <TasksBoard items={project.tasks} milestones={project.milestones} />,
+          },
           {
             value: "milestones",
             label: "Milestones",
-            content: <MilestonesList projectId={project.id} />,
+            content: <MilestonesList items={project.milestones} />,
           },
           {
             value: "deliverables",
             label: "Deliverables",
-            content: <DeliverablesList projectId={project.id} role="vendor" />,
+            content: <DeliverablesList items={project.deliverables} />,
           },
           {
             value: "documents",
@@ -71,7 +98,7 @@ function VendorProjectDetail() {
           {
             value: "requests",
             label: "Client requests",
-            content: <ClientRequestsList projectId={project.id} />,
+            content: <ClientRequestsList items={project.clientRequests} />,
           },
           {
             value: "activity",

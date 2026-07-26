@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { prisma } from "../db/prisma.js";
+import { authenticate } from "../middleware/authenticate.js";
 
 const projectParamsSchema = z.object({
   projectId: z.string().min(1),
@@ -9,9 +10,18 @@ const projectParamsSchema = z.object({
 
 export const projectsRouter = Router();
 
-projectsRouter.get("/", async (_request, response, next) => {
+projectsRouter.use(authenticate);
+
+projectsRouter.get("/", async (request, response, next) => {
   try {
     const projects = await prisma.project.findMany({
+      where: {
+        members: {
+          some: {
+            userId: request.user!.id,
+          },
+        },
+      },
       orderBy: { name: "asc" },
     });
     response.json({
@@ -26,8 +36,15 @@ projectsRouter.get("/", async (_request, response, next) => {
 projectsRouter.get("/:projectId", async (request, response, next) => {
   try {
     const { projectId } = projectParamsSchema.parse(request.params);
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        members: {
+          some: {
+            userId: request.user!.id,
+          },
+        },
+      },
       include: {
         milestones: true,
         tasks: true,

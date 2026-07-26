@@ -1,52 +1,53 @@
 # Projectline
 
-Projectline is a project-management dashboard prototype with separate client and vendor portals.
-The existing React frontend still uses mock data and simulated interactions. A small Express,
-Prisma, and SQLite API now provides the first backend foundation without changing the frontend
-design or routes.
+Projectline is a project-management dashboard with separate client and vendor portals. The React
+frontend now supports real email/password login, JWT session restoration, role-protected routes,
+and read-only project list/detail screens backed by an Express, Prisma, and SQLite API.
+
+Documents, notifications, activity feeds, dashboard aggregates, uploads, and settings still use the
+original frontend mock data and simulations.
 
 ## Prerequisites
 
 - Node.js 20 or newer
 - npm 11 or newer
 
-The repository uses npm lockfiles for reproducible installs.
+The repository uses separate npm packages and lockfiles for the frontend and backend.
 
-## Frontend
+## First-time setup
 
-Install dependencies from the repository root:
+Install frontend dependencies:
 
 ```sh
 npm install
 ```
 
-Run the frontend on the URL expected by the backend example configuration:
+Create the optional frontend environment file.
 
-```sh
-npm run dev
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-Open `http://localhost:5173`.
-
-Useful frontend checks:
+macOS/Linux:
 
 ```sh
-npm run lint
-npm run typecheck
-npm run test
-npm run build
+cp .env.example .env.local
 ```
 
-## Backend
+The default frontend configuration is:
 
-Install the separate backend dependencies:
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+Install and configure the backend:
 
 ```sh
 cd server
 npm install
 ```
-
-Create the local environment file.
 
 PowerShell:
 
@@ -60,58 +61,108 @@ macOS/Linux:
 cp .env.example .env
 ```
 
-Create the SQLite database and add development data:
+Create and seed the SQLite database:
 
 ```sh
 npm run prisma:migrate
 npm run prisma:seed
 ```
 
-Start the backend:
+## Run the application
+
+Start the frontend from the repository root:
 
 ```sh
 npm run dev
 ```
 
-The default API address is `http://127.0.0.1:3001`.
+Frontend: `http://localhost:5173`
 
-Available endpoints:
-
-- `GET /api/health`
-- `GET /api/projects`
-- `GET /api/projects/:projectId`
-
-Useful backend checks:
+Start the backend in a second terminal:
 
 ```sh
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-npm start
+cd server
+npm run dev
 ```
 
-## Development seed accounts
+API: `http://localhost:3001`
 
-These credentials are local seed data only. Authentication endpoints are not implemented yet.
+## Development accounts
+
+These credentials are local development data only:
 
 - Client: `client@example.com` / `password123`
 - Vendor: `vendor@example.com` / `password123`
 
-Passwords are stored in SQLite as bcrypt hashes.
+Passwords are bcrypt-hashed in SQLite. The demo buttons on the login page fill these credentials;
+the backend user record determines the portal role.
 
-## Current limitations
+## Authentication
 
-- The frontend is not connected to the API and continues to use `src/data/` mock data.
-- Login and route protection remain simulated; there are no JWT or refresh-token endpoints.
-- Project data is read-only through the API.
-- Document upload and object storage are not implemented.
-- SQLite is intended for local MVP development, not the final production database.
-- Package installation reports unresolved high-severity advisories. A registry audit was not
-  authorised in the current environment, so advisory details and safe upgrade paths still require
-  review.
+- `POST /api/auth/login` verifies the bcrypt password and returns a JWT access token.
+- `GET /api/auth/me` restores the current user from a Bearer token.
+- `POST /api/auth/logout` acknowledges logout; the frontend clears its local session.
+- Access tokens use HS256 and expire after eight hours.
+- Refresh tokens and server-side token revocation are intentionally not implemented.
+- The frontend stores the JWT in local storage for this internship MVP.
 
-See `docs/IMPLEMENTATION_PLAN.md` for the current architecture and recommended next steps, and
+Project endpoints require `Authorization: Bearer <token>` and enforce `ProjectMember` membership:
+
+- `GET /api/projects`
+- `GET /api/projects/:projectId`
+
+Unassigned and nonexistent project details both return 404.
+
+## Validation
+
+Frontend:
+
+```sh
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+Backend:
+
+```sh
+cd server
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+## Current frontend data sources
+
+API-backed:
+
+- Login and current user
+- Client and vendor route access
+- Client and vendor project lists
+- Client and vendor project overview, milestones, tasks, deliverables, and client requests
+
+Still mock-driven:
+
+- Dashboard aggregate/project panels
+- Documents and uploads
+- Notifications
+- Activity feeds and project updates
+- Settings
+
+## MVP limitations
+
+- Project APIs are read-only.
+- JWTs are stored in local storage and cannot be revoked server-side before expiry.
+- Logout clears the frontend token but does not blacklist it.
+- There are no refresh tokens.
+- Documents and uploads are not connected to the backend.
+- SQLite is intended for local MVP development.
+- Dependency installs continue to report unresolved high-severity advisories.
+
+See `docs/IMPLEMENTATION_PLAN.md` for current architecture and next steps, and
 `docs/CODEX_HANDOFF.md` for continuation notes.
 
 ## Lovable synchronisation

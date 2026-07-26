@@ -1,9 +1,10 @@
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { authStore } from "@/lib/auth";
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
+  authStore.reset();
 });
 
 Object.defineProperty(window, "matchMedia", {

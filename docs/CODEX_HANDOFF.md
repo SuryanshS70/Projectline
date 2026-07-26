@@ -2,106 +2,47 @@
 
 **Last updated:** 2026-07-26
 
-This is the continuation guide for Projectline. Read it completely before changing the repository.
-The project is connected to Lovable: do not rewrite published Git history or force-push.
+Read this file completely before continuing. Projectline is connected to Lovable; do not rewrite
+published Git history or force-push.
 
-## Current state
+## Current implementation
 
-Projectline contains:
+Phase 3 is complete. Projectline now has:
 
-- a completed Lovable-generated frontend prototype with separate client and vendor portals;
-- existing mock data and simulated interactions;
-- frontend route smoke tests;
-- a small, separate Express/TypeScript API;
-- Prisma with a local SQLite database, initial migration, and development seed;
-- three unauthenticated read endpoints.
+- real email/password login against seeded bcrypt hashes;
+- eight-hour HS256 JWT access tokens;
+- `/api/auth/login`, `/api/auth/me`, and `/api/auth/logout`;
+- Bearer-token middleware;
+- client/vendor frontend route protection;
+- project membership enforcement;
+- API-backed client/vendor project lists and project detail;
+- frontend session restoration and logout;
+- focused backend and frontend tests.
 
-The frontend still uses `src/data/` and is **not connected to the API**. This is deliberate. Do not
-remove mock data or change the frontend design/routes without a new explicit request.
+The implementation intentionally has no refresh tokens, token blacklist, Redis, S3, complex RBAC,
+document upload backend, project mutations, or real-time features.
 
-## Frontend
-
-The root npm package uses TanStack Start, TanStack Router, React 19, TypeScript, Tailwind CSS, Radix
-UI, and the Lovable Vite configuration.
-
-Routes:
-
-```text
-/
-/login
-/client/dashboard
-/client/projects
-/client/projects/:projectId
-/client/documents
-/client/notifications
-/client/settings
-/vendor/dashboard
-/vendor/projects
-/vendor/projects/:projectId
-/vendor/documents
-/vendor/notifications
-/vendor/settings
-/*
-```
-
-Key locations:
-
-- `src/routes/` — file-based routes
-- `src/components/layout/` — shared application shell
-- `src/components/common/` — reusable presentation and interaction components
-- `src/components/project/` — shared project-domain screens
-- `src/data/types.ts` — frontend interfaces/status unions
-- `src/data/*.ts` — mock records
-- `src/lib/session.ts` — permissive demo-session placeholder
-- `src/test/app-routes.test.tsx` — route smoke coverage
-
-All visible mutations remain local simulations. Uploads, task moves, notifications, deliverable
-actions, and login do not persist.
-
-## Backend
-
-The API is a separate npm package under `server/` using:
-
-- Node.js 20+
-- Express 5
-- TypeScript
-- Prisma 6
-- SQLite
-- Zod
-- Vitest and Supertest
-
-Key locations:
-
-- `server/src/app.ts` — Express configuration
-- `server/src/server.ts` — process startup/shutdown
-- `server/src/config/env.ts` — validated environment
-- `server/src/db/prisma.ts` — Prisma client
-- `server/src/routes/` — health and project routes
-- `server/src/middleware/` — consistent errors and 404s
-- `server/prisma/schema.prisma` — eight requested MVP models
-- `server/prisma/migrations/` — initial committed migration
-- `server/prisma/seed.ts` — repeatable local seed
-- `server/test/api.test.ts` — four API tests
-
-Implemented endpoints:
-
-```text
-GET /api/health
-GET /api/projects
-GET /api/projects/:projectId
-```
-
-There is no authentication, role enforcement, project-membership enforcement, mutation API,
-document upload, S3 integration, PostgreSQL, Redis, or background queue.
-
-## Local setup
+## Run locally
 
 Frontend:
 
 ```sh
 npm install
+```
+
+Optionally copy the root `.env.example` to `.env.local`:
+
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+Start:
+
+```sh
 npm run dev
 ```
+
+Frontend URL: `http://localhost:5173`
 
 Backend:
 
@@ -118,73 +59,156 @@ npm run prisma:seed
 npm run dev
 ```
 
-Default API address: `http://127.0.0.1:3001`.
+API URL: `http://localhost:3001`
 
-Development seed accounts:
+Development credentials:
 
 ```text
 client@example.com / password123
 vendor@example.com / password123
 ```
 
-The seed stores bcrypt hashes. These credentials are not connected to the frontend login yet.
+## Authentication design
 
-## Validation commands
+`server/src/routes/auth.ts` verifies credentials with bcrypt and returns a token plus:
 
-From the repository root:
+```text
+id
+name
+email
+role
+organisationName
+```
+
+Password hashes are never returned. Tokens use HS256, the user ID JWT subject, `JWT_SECRET`, and an
+eight-hour expiry.
+
+`server/src/middleware/authenticate.ts`:
+
+1. reads `Authorization: Bearer <token>`;
+2. verifies the signature and expiry;
+3. loads the current user;
+4. attaches safe user data to `request.user`;
+5. returns 401 on failure.
+
+Logout is stateless. The endpoint acknowledges the request and the frontend deletes its local JWT.
+Previously issued tokens are not revoked server-side.
+
+Frontend token/session code:
+
+- `src/lib/session.ts`
+- `src/lib/api.ts`
+- `src/lib/auth.ts`
+
+Local-storage JWT persistence is an explicit internship-MVP compromise.
+
+## Route protection
+
+The pathless `src/routes/_app.tsx` layout restores the session before rendering.
+
+- Unauthenticated users go to `/login`.
+- `CLIENT` users may use `/client/*`.
+- `VENDOR` users may use `/vendor/*`.
+- Wrong-portal navigation redirects to the user's own dashboard.
+- The sidebar role switch was removed.
+- Demo login buttons fill credentials; they cannot choose a database role.
+
+## Project access
+
+`GET /api/projects` and `GET /api/projects/:projectId` require authentication and filter through
+`ProjectMember`.
+
+Project detail returns 404 for both unassigned and nonexistent IDs.
+
+Current seed memberships:
+
+```text
+client@example.com
+  prj-portal
+  prj-erp
+
+vendor@example.com
+  prj-portal
+  prj-mobile
+```
+
+## Frontend data sources
+
+API-backed:
+
+- login/current user;
+- portal role protection;
+- `/client/projects`;
+- `/client/projects/:projectId`;
+- `/vendor/projects`;
+- `/vendor/projects/:projectId`;
+- overview, milestones, tasks, deliverables, and client-request data inside those details.
+
+Still mock-driven:
+
+- dashboard project panels/metrics;
+- documents and uploads;
+- notifications;
+- activity and updates;
+- settings;
+- document/update/activity project tabs.
+
+Do not delete `src/data/`; active screens still depend on it.
+
+## Project UI behavior
+
+React Query loads project lists and details. Query keys include the authenticated user ID to avoid
+cross-account cache reuse.
+
+`src/lib/api.ts` converts Prisma uppercase enum strings to the existing lowercase UI status values.
+Project task, deliverable, and client-request displays are read-only.
+
+Loading uses `ListSkeleton`; errors and empty results use `EmptyState`.
+
+## Validation baseline
+
+Frontend:
 
 ```sh
+npm run format:check
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 ```
 
-From `server/`:
+Current frontend baseline: 11 passing tests.
+
+Backend:
 
 ```sh
+cd server
 npm run lint
 npm run typecheck
 npm run test
 npm run build
-npm start
 ```
 
-The current automated baseline is five passing frontend tests and four passing backend tests.
+Current backend baseline: 13 passing tests.
 
-## Decisions made in this phase
+The existing Prisma migration remains valid. Run `npm run prisma:seed` after pulling this phase so
+the updated membership set replaces Phase 2's all-project memberships.
 
-- npm is the single package manager; root and backend lockfiles are committed.
-- The unused dependency that caused npm peer resolution to fail was removed.
-- Fast Refresh warnings were fixed by moving variant helpers out of component modules.
-- Express and SQLite were selected for the smallest reliable internship/MVP foundation.
-- API responses consistently wrap success data and error messages.
-- The seed aligns project IDs and basic content with the frontend prototype where practical.
-- Frontend/API integration was intentionally deferred.
+## Known limitations
 
-## Known issues and constraints
+- JWTs are stored in local storage.
+- No refresh tokens or server-side logout revocation exist.
+- Authentication-aware SSR is not implemented.
+- Projects are read-only.
+- Dashboard project summaries still use mocks.
+- Documents, uploads, notifications, activity, and settings remain mock-driven.
+- SQLite is for local MVP development.
+- High-severity dependency advisories remain unresolved.
 
-- Frontend route guards and role selection are simulations.
-- The API is unauthenticated and must remain local-only until authentication and membership checks
-  exist.
-- Some frontend mock aggregates are not organisation-scoped.
-- Frontend and Prisma interfaces are separate and can drift.
-- Document rows have metadata fields, but no files are stored.
-- SQLite is local-development infrastructure, not a production decision.
-- Dependency installation reports high-severity advisories in both npm packages. The environment
-  did not authorise the registry audit needed to retrieve advisory details.
-- The frontend build succeeds with non-fatal warnings from the upstream Lovable/Vite configuration.
+## Next work
 
-## Recommended next phase
+Only continue when requested. The smallest useful next phase would connect dashboard project
+summaries to the existing authenticated queries, then add explicitly required mutations or document
+uploads one domain at a time.
 
-If requested, proceed in this order:
-
-1. Resolve dependency advisories.
-2. Add typed API response DTOs and a minimal fetch client.
-3. Add React Query hooks for project list/detail reads.
-4. Integrate project screens incrementally while keeping mock fallback data.
-5. Implement bcrypt login, short-lived JWT access tokens, rotating refresh tokens, and logout.
-6. Enforce `ProjectMember` checks and role-specific permissions.
-7. Add mutations and document storage only after the read/auth path is tested.
-
-Do not start those items as part of the completed foundation phase.
+Do not add enterprise infrastructure or unrelated frontend features.

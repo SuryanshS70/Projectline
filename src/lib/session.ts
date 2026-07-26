@@ -1,43 +1,18 @@
-// Demo-only session state. Codex will replace this with a real auth context
-// backed by JWT + refresh tokens.
-import type { Role, User } from "@/data/types";
-import { demoClient, demoVendor } from "@/data/users";
+const TOKEN_STORAGE_KEY = "projectline-access-token";
 
-const STORAGE_KEY = "pm-demo-session";
-
-export interface DemoSession {
-  role: Role;
-  userId: string;
-}
-
-export function getSession(): DemoSession | null {
+export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as DemoSession;
-  } catch {
-    return null;
-  }
+  return window.localStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
-export function setSession(role: Role): DemoSession {
-  const user = role === "client" ? demoClient : demoVendor;
-  const session: DemoSession = { role, userId: user.id };
+export function storeToken(token: string): void {
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
   }
-  return session;
 }
 
-export function clearSession(): void {
+export function clearStoredToken(): void {
   if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
   }
-}
-
-export function currentUser(): User {
-  const session = getSession();
-  if (!session) return demoClient;
-  return session.role === "client" ? demoClient : demoVendor;
 }

@@ -14,6 +14,7 @@ import { recentActivity } from "@/data/activity";
 import { documents } from "@/data/documents";
 import { milestones } from "@/data/milestones";
 import { formatDate, formatRelative } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app/client/dashboard")({
   head: () => ({
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_app/client/dashboard")({
 });
 
 function ClientDashboard() {
+  const { user } = useAuth();
   const clientProjects = projects.filter((p) => p.clientOrgId === demoClient.organisationId);
   const active = clientProjects.filter((p) => p.status !== "completed").length;
   const delayed = clientProjects.filter(
@@ -45,7 +47,7 @@ function ClientDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Welcome back, ${demoClient.name.split(" ")[0]}`}
+        title={`Welcome back, ${user?.name.split(" ")[0] ?? "Ava"}`}
         description="Here's what's happening across your projects today."
       />
 

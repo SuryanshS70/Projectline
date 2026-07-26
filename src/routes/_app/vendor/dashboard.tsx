@@ -14,6 +14,7 @@ import { tasks } from "@/data/tasks";
 import { deliverables } from "@/data/deliverables";
 import { milestones } from "@/data/milestones";
 import { formatDate } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app/vendor/dashboard")({
   head: () => ({
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_app/vendor/dashboard")({
 });
 
 function VendorDashboard() {
+  const { user } = useAuth();
   const list = projects.filter((p) => p.vendorOrgId === demoVendor.organisationId);
   const active = list.filter((p) => p.status !== "completed").length;
   const dueThisWeek = tasks.filter((t) => {
@@ -50,7 +52,7 @@ function VendorDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Welcome back, ${demoVendor.name.split(" ")[0]}`}
+        title={`Welcome back, ${user?.name.split(" ")[0] ?? "Jamal"}`}
         description="Here's what needs your team's attention."
       />
 

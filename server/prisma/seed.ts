@@ -392,10 +392,12 @@ async function main() {
 
   await prisma.project.createMany({ data: projects });
   await prisma.projectMember.createMany({
-    data: projects.flatMap((project) => [
-      { userId: "u-ava", projectId: project.id },
-      { userId: "u-jamal", projectId: project.id },
-    ]),
+    data: [
+      { userId: "u-ava", projectId: "prj-portal" },
+      { userId: "u-ava", projectId: "prj-erp" },
+      { userId: "u-jamal", projectId: "prj-portal" },
+      { userId: "u-jamal", projectId: "prj-mobile" },
+    ],
   });
   await prisma.milestone.createMany({ data: milestones });
   await prisma.task.createMany({ data: tasks });

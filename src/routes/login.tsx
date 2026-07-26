@@ -1,13 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { Users, Wrench } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
-import { Users, Wrench } from "lucide-react";
-import { setSession } from "@/lib/session";
-import type { Role } from "@/data/types";
+import { ApiError } from "@/lib/api";
+import { authStore } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -31,10 +32,34 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const goto = (role: Role) => {
-    setSession(role);
-    navigate({ to: `/${role}/dashboard` });
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const user = await authStore.login(email, password);
+      await navigate({
+        to: user.role === "CLIENT" ? "/client/dashboard" : "/vendor/dashboard",
+      });
+    } catch (loginError) {
+      setError(
+        loginError instanceof ApiError
+          ? loginError.message
+          : "Unable to sign in. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const fillDemoCredentials = (role: "CLIENT" | "VENDOR") => {
+    setEmail(role === "CLIENT" ? "client@example.com" : "vendor@example.com");
+    setPassword("password123");
+    setError(null);
   };
 
   return (
@@ -52,13 +77,7 @@ function LoginPage() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                goto("client");
-              }}
-            >
+            <form className="space-y-4" onSubmit={submit}>
               <div className="space-y-2">
                 <Label htmlFor="email">Work email</Label>
                 <Input
@@ -67,7 +86,8 @@ function LoginPage() {
                   autoComplete="email"
                   placeholder="you@company.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -86,17 +106,23 @@ function LoginPage() {
                   autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox id="remember" defaultChecked />
+                <Checkbox id="remember" defaultChecked disabled />
                 <Label htmlFor="remember" className="text-sm font-normal text-slate-600">
                   Remember me on this device
                 </Label>
               </div>
-              <Button type="submit" className="w-full">
-                Sign in
+              {error && (
+                <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 
@@ -107,18 +133,18 @@ function LoginPage() {
             </div>
 
             <div className="grid gap-2">
-              <Button type="button" variant="outline" onClick={() => goto("client")}>
+              <Button type="button" variant="outline" onClick={() => fillDemoCredentials("CLIENT")}>
                 <Users className="mr-2 h-4 w-4" />
-                Sign in as Client
+                Use Client credentials
               </Button>
-              <Button type="button" variant="outline" onClick={() => goto("vendor")}>
+              <Button type="button" variant="outline" onClick={() => fillDemoCredentials("VENDOR")}>
                 <Wrench className="mr-2 h-4 w-4" />
-                Sign in as Vendor
+                Use Vendor credentials
               </Button>
             </div>
 
             <p className="mt-6 text-center text-xs text-slate-500">
-              Demo environment — no real credentials required.
+              Development accounts only — choose an account, then sign in.
             </p>
           </CardContent>
         </Card>

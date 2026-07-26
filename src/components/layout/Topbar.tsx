@@ -4,9 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { RoleBadge } from "@/components/common/RoleBadge";
-import { demoClient, demoVendor } from "@/data/users";
-import { getOrgById } from "@/data/organisations";
 import { notificationsForRole } from "@/data/notifications";
+import { useAuth } from "@/lib/auth";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 interface Props {
@@ -25,10 +24,11 @@ const titleFor = (path: string): string => {
 };
 
 export function Topbar({ role, onOpenSidebar }: Props) {
-  const user = role === "client" ? demoClient : demoVendor;
-  const org = getOrgById(user.organisationId);
+  const { user } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const unread = notificationsForRole(role).filter((n) => !n.read).length;
+
+  if (!user) return null;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">
@@ -66,7 +66,7 @@ export function Topbar({ role, onOpenSidebar }: Props) {
       <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium text-slate-900">{user.name}</p>
-          <p className="text-xs text-slate-500">{org?.name}</p>
+          <p className="text-xs text-slate-500">{user.organisationName}</p>
         </div>
         <UserAvatar name={user.name} />
         <RoleBadge role={role} className="hidden sm:inline-flex" />

@@ -3,6 +3,53 @@
 All notable Projectline changes should be documented in this file. This changelog covers Codex-led
 repository work and does not replace Git history or Lovable's project history.
 
+## 2026-07-26 - Authentication, project access, and frontend integration
+
+### Added
+
+- Added bcrypt-backed `POST /api/auth/login`, authenticated `GET /api/auth/me`, and stateless
+  `POST /api/auth/logout`.
+- Added eight-hour HS256 JWT access tokens and small Bearer-token authentication middleware.
+- Added safe current-user response types; password hashes are never returned.
+- Added a typed frontend API client configured by `VITE_API_URL`.
+- Added a small external authentication store with login, local JWT persistence, session
+  restoration, invalid-token cleanup, and logout.
+- Added client/vendor protected-route redirects based on the authenticated backend role.
+- Added React Query loading for client/vendor project lists and project detail.
+- Added frontend loading, empty, API-unavailable, and missing/unassigned project states.
+- Added nine backend authentication/access tests, bringing the backend suite to 13 tests.
+- Added eight frontend authentication/project-integration tests, bringing the frontend suite to 11
+  tests.
+- Added a root `.env.example` for the frontend API URL.
+
+### Changed
+
+- Protected both project endpoints and filtered them through `ProjectMember`.
+- Standardised project-detail denial on 404 for both missing and unassigned IDs.
+- Changed seed memberships so the client and vendor each receive two appropriate projects.
+- Replaced project-domain mock imports in the four client/vendor project list/detail routes.
+- Updated project overview, milestone, task, deliverable, and client-request components to render
+  read-only API data.
+- Updated sidebar/top-bar identity details to use the authenticated user.
+- Changed login demo buttons to fill credentials instead of simulating role selection.
+- Removed the simulated sidebar role switch.
+- Updated README, implementation plan, and handoff documentation for the Phase 3 flow.
+
+### Preserved
+
+- Existing visual design, route paths, cards, tabs, badges, and progress displays.
+- Mock-driven dashboards, documents, uploads, notifications, activity, updates, and settings.
+- Existing Prisma models and initial migration; no schema change was required.
+
+### Validation
+
+- Backend lint, typecheck, build, and 13 tests pass.
+- Frontend lint, typecheck, build, and 11 tests pass.
+- Prisma migration remains in sync and the updated seed succeeds.
+- Manual browser verification passed for client/vendor login, assigned project lists, project
+  detail, wrong-portal redirects, and logout with no browser console errors.
+- Backend installation continues to report eight high-severity dependency advisories.
+
 ## 2026-07-26 - Frontend fixes and simple backend foundation
 
 ### Added

@@ -1,23 +1,53 @@
-import { createFileRoute, Outlet, useRouterState, redirect } from "@tanstack/react-router";
-import { AppShell } from "@/components/layout/AppShell";
-import type { Role } from "@/data/types";
+import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
-// Pathless layout applied to both /client/* and /vendor/*.
-// The role is derived from the URL segment.
+import { AppShell } from "@/components/layout/AppShell";
+import { ListSkeleton } from "@/components/common/LoadingSkeleton";
+import { authStore, useAuth } from "@/lib/auth";
+
 export const Route = createFileRoute("/_app")({
-  beforeLoad: ({ location }) => {
-    // Protected-route placeholder. Codex will replace this with real auth.
-    // For the demo we allow direct navigation but redirect if landing on /_app itself.
-    if (location.pathname === "/" || location.pathname === "/_app") {
-      throw redirect({ to: "/login" });
+  ssr: false,
+  beforeLoad: async ({ location }) => {
+    await authStore.restore();
+    const user = authStore.getSnapshot().user;
+
+    if (!user) throw redirect({ to: "/login" });
+
+    const requestedRole = location.pathname.startsWith("/vendor") ? "VENDOR" : "CLIENT";
+    if (user.role !== requestedRole) {
+      throw redirect({
+        to: user.role === "CLIENT" ? "/client/dashboard" : "/vendor/dashboard",
+      });
     }
+
+    return { user };
   },
+  pendingMs: 0,
+  pendingComponent: AuthLoadingScreen,
   component: AppLayout,
 });
 
+function AuthLoadingScreen() {
+  return (
+    <div className="mx-auto min-h-screen max-w-3xl bg-slate-50 px-6 py-16">
+      <ListSkeleton rows={4} />
+    </div>
+  );
+}
+
 function AppLayout() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const role: Role = pathname.startsWith("/vendor") ? "vendor" : "client";
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      void navigate({ to: "/login" });
+    }
+  }, [isLoading, navigate, user]);
+
+  if (!user) return <AuthLoadingScreen />;
+  const role = user.role === "CLIENT" ? "client" : "vendor";
+
   return (
     <AppShell role={role}>
       <Outlet />

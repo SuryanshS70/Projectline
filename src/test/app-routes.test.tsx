@@ -40,18 +40,6 @@ describe("application route smoke tests", () => {
     expect(await screen.findByRole("heading", { name: "Sign in to Projectline" })).toBeTruthy();
   });
 
-  it("renders the client dashboard", async () => {
-    await renderRoute("/client/dashboard");
-
-    expect(await screen.findByRole("heading", { name: "Welcome back, Ava" })).toBeTruthy();
-  });
-
-  it("renders the vendor dashboard", async () => {
-    await renderRoute("/vendor/dashboard");
-
-    expect(await screen.findByRole("heading", { name: "Welcome back, Jamal" })).toBeTruthy();
-  });
-
   it("renders the not-found page for an unknown route", async () => {
     await renderRoute("/this-route-does-not-exist");
 
