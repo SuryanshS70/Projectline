@@ -243,6 +243,15 @@ const deliverables = [
     approvalStatus: "APPROVED" as const,
   },
   {
+    id: "d-2",
+    projectId: "prj-portal",
+    title: "Beta build package",
+    description: "Signed build with release notes for the pilot cohort.",
+    dueDate: new Date("2026-08-01"),
+    submissionStatus: "NOT_SUBMITTED" as const,
+    approvalStatus: "NOT_STARTED" as const,
+  },
+  {
     id: "d-3",
     projectId: "prj-portal",
     title: "Accessibility audit report",
@@ -343,7 +352,7 @@ const clientRequests = [
     title: "Auditor reconciliation view",
     description: "Provide a read-only export of dry-run comparisons.",
     priority: "MEDIUM" as const,
-    status: "RESOLVED" as const,
+    status: "COMPLETED" as const,
     dueDate: new Date("2026-08-10"),
   },
   {

@@ -1,3 +1,6 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { UserAvatar } from "@/components/common/UserAvatar";
@@ -9,8 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ApiMilestone, ApiTask } from "@/lib/api";
+import type { TaskStatus } from "@/data/types";
+import { updateTask, type ApiMilestone, type ApiProjectDetail, type ApiTask } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+
+const taskStatuses: TaskStatus[] = ["not_started", "in_progress", "blocked", "completed"];
 
 export function TasksBoard({
   items,
@@ -19,6 +25,24 @@ export function TasksBoard({
   items: ApiTask[];
   milestones: ApiMilestone[];
 }) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) =>
+      updateTask(taskId, { status }),
+    onSuccess: (updatedTask) => {
+      queryClient.setQueriesData<ApiProjectDetail>({ queryKey: ["project"] }, (project) =>
+        project
+          ? {
+              ...project,
+              tasks: project.tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
+            }
+          : project,
+      );
+      toast.success("Task status updated");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   if (items.length === 0) return <EmptyState title="No tasks yet" />;
 
   return (
@@ -37,6 +61,7 @@ export function TasksBoard({
         <TableBody>
           {items.map((task) => {
             const milestone = milestones.find((item) => item.id === task.milestoneId);
+            const updating = mutation.isPending && mutation.variables?.taskId === task.id;
             return (
               <TableRow key={task.id}>
                 <TableCell>
@@ -59,7 +84,24 @@ export function TasksBoard({
                   {formatDate(task.dueDate)}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge value={task.status} />
+                  <select
+                    aria-label={`Status for ${task.title}`}
+                    value={task.status}
+                    disabled={updating}
+                    onChange={(event) =>
+                      mutation.mutate({
+                        taskId: task.id,
+                        status: event.target.value as TaskStatus,
+                      })
+                    }
+                    className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 disabled:opacity-50"
+                  >
+                    {taskStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status.replaceAll("_", " ")}
+                      </option>
+                    ))}
+                  </select>
                 </TableCell>
               </TableRow>
             );

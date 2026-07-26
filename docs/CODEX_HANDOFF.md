@@ -5,22 +5,22 @@
 Read this file completely before continuing. Projectline is connected to Lovable; do not rewrite
 published Git history or force-push.
 
-## Current implementation
+## Current state
 
-Phase 3 is complete. Projectline now has:
+Phase 4 is complete. The internship MVP now has:
 
-- real email/password login against seeded bcrypt hashes;
-- eight-hour HS256 JWT access tokens;
-- `/api/auth/login`, `/api/auth/me`, and `/api/auth/logout`;
-- Bearer-token middleware;
-- client/vendor frontend route protection;
-- project membership enforcement;
-- API-backed client/vendor project lists and project detail;
-- frontend session restoration and logout;
+- bcrypt email/password login and eight-hour JWTs;
+- client/vendor route protection;
+- project membership filtering;
+- API-backed dashboards, projects, and documents;
+- vendor task and milestone updates;
+- vendor deliverable readiness/submission;
+- client deliverable approval/change requests with feedback;
+- client request creation and vendor status updates;
+- local document upload, list, download, and permanent delete;
 - focused backend and frontend tests.
 
-The implementation intentionally has no refresh tokens, token blacklist, Redis, S3, complex RBAC,
-document upload backend, project mutations, or real-time features.
+Notifications, activity, settings, and advanced reporting remain mocked.
 
 ## Run locally
 
@@ -28,142 +28,116 @@ Frontend:
 
 ```sh
 npm install
-```
-
-Optionally copy the root `.env.example` to `.env.local`:
-
-```env
-VITE_API_URL=http://localhost:3001
-```
-
-Start:
-
-```sh
 npm run dev
 ```
 
-Frontend URL: `http://localhost:5173`
+URL: `http://localhost:5173`
 
 Backend:
 
 ```sh
 cd server
 npm install
-```
-
-Copy `server/.env.example` to `server/.env`, then:
-
-```sh
 npm run prisma:migrate
 npm run prisma:seed
 npm run dev
 ```
 
-API URL: `http://localhost:3001`
+URL: `http://localhost:3001`
 
-Development credentials:
+Development accounts:
 
 ```text
 client@example.com / password123
 vendor@example.com / password123
 ```
 
-## Authentication design
+The frontend API URL comes from `VITE_API_URL`; the default is `http://localhost:3001`.
 
-`server/src/routes/auth.ts` verifies credentials with bcrypt and returns a token plus:
+## Authentication
 
-```text
-id
-name
-email
-role
-organisationName
-```
+`server/src/middleware/authenticate.ts` reads and verifies the Bearer token, loads a safe current
+user, and attaches it to the Express request. Tokens use HS256 and expire in eight hours.
 
-Password hashes are never returned. Tokens use HS256, the user ID JWT subject, `JWT_SECRET`, and an
-eight-hour expiry.
+The frontend stores the JWT in local storage and restores the user through `/api/auth/me`. Logout is
+stateless and does not revoke an issued token.
 
-`server/src/middleware/authenticate.ts`:
+## Membership and permissions
 
-1. reads `Authorization: Bearer <token>`;
-2. verifies the signature and expiry;
-3. loads the current user;
-4. attaches safe user data to `request.user`;
-5. returns 401 on failure.
+All resource routes load through project membership. Missing and unassigned IDs return 404.
 
-Logout is stateless. The endpoint acknowledges the request and the frontend deletes its local JWT.
-Previously issued tokens are not revoked server-side.
+| Resource        | Client                             | Vendor                           |
+| --------------- | ---------------------------------- | -------------------------------- |
+| Tasks           | Read                               | Read and update                  |
+| Milestones      | Read                               | Read and update                  |
+| Deliverables    | Read, approve, or request changes  | Read, ready, and submit          |
+| Client requests | Read and create                    | Read and update status           |
+| Documents       | List, upload, download, and delete | List, upload, download, delete   |
+| Dashboard       | Assigned client metrics/projects   | Assigned vendor metrics/projects |
 
-Frontend token/session code:
+Deliverable route actions are `READY_FOR_REVIEW`, `SUBMIT`, `APPROVE`, and `REQUEST_CHANGES`.
+Request changes requires feedback.
 
-- `src/lib/session.ts`
-- `src/lib/api.ts`
-- `src/lib/auth.ts`
+Client request statuses are `OPEN`, `IN_PROGRESS`, and `COMPLETED`.
 
-Local-storage JWT persistence is an explicit internship-MVP compromise.
+## Documents
 
-## Route protection
+Uploads are stored in `server/uploads/`, which is ignored by Git. Metadata is stored in SQLite.
 
-The pathless `src/routes/_app.tsx` layout restores the session before rendering.
+- one file per request;
+- 10 MB maximum;
+- PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG, TXT, and ZIP;
+- UUID-based stored filenames;
+- authenticated membership checks before upload;
+- safe-path checks before download/delete;
+- permanent file and row deletion.
 
-- Unauthenticated users go to `/login`.
-- `CLIENT` users may use `/client/*`.
-- `VENDOR` users may use `/vendor/*`.
-- Wrong-portal navigation redirects to the user's own dashboard.
-- The sidebar role switch was removed.
-- Demo login buttons fill credentials; they cannot choose a database role.
+The frontend project tabs and both document repositories use these endpoints. Simulated progress,
+version, visibility, approval, and preview controls were removed because those values are not
+persisted.
 
-## Project access
+Local storage is an explicit internship-MVP compromise. S3, cloud storage, versions, soft deletion,
+and advanced document permissions are future scope.
 
-`GET /api/projects` and `GET /api/projects/:projectId` require authentication and filter through
-`ProjectMember`.
+## Dashboard
 
-Project detail returns 404 for both unassigned and nonexistent IDs.
+`GET /api/dashboard` supplies:
 
-Current seed memberships:
+- client total/active/delayed projects and pending approvals;
+- vendor active projects, tasks due soon, overdue tasks, and deliverables awaiting review;
+- assigned project summaries;
+- upcoming milestones;
+- latest documents.
 
-```text
-client@example.com
-  prj-portal
-  prj-erp
+Recent activity remains mocked.
 
-vendor@example.com
-  prj-portal
-  prj-mobile
-```
+## Frontend integration
 
-## Frontend data sources
+`src/lib/api.ts` contains the complete typed client. It automatically adds the JWT, handles JSON and
+FormData, normalises Prisma enums, and exposes small functions for each Phase 4 action.
 
-API-backed:
+Mutation components update the current React Query project record. Document mutations invalidate
+document queries. No optimistic update or additional state library was added.
 
-- login/current user;
-- portal role protection;
-- `/client/projects`;
-- `/client/projects/:projectId`;
-- `/vendor/projects`;
-- `/vendor/projects/:projectId`;
-- overview, milestones, tasks, deliverables, and client-request data inside those details.
+Key integration components:
 
-Still mock-driven:
+- `src/components/project/TasksBoard.tsx`
+- `src/components/project/MilestonesList.tsx`
+- `src/components/project/DeliverablesList.tsx`
+- `src/components/project/ClientRequestsList.tsx`
+- `src/components/project/ProjectDocuments.tsx`
+- `src/components/documents/DocumentRepository.tsx`
 
-- dashboard project panels/metrics;
-- documents and uploads;
-- notifications;
-- activity and updates;
-- settings;
-- document/update/activity project tabs.
+## Database and seed
 
-Do not delete `src/data/`; active screens still depend on it.
+Prisma enum values now include deliverable `READY_FOR_REVIEW`, approval `PENDING`, and request
+`COMPLETED`. SQLite required no new SQL migration for these enum-text changes.
 
-## Project UI behavior
+The seed creates nine deliverables, including `d-2`, an unsubmitted portal deliverable shared by the
+client and vendor demonstration accounts.
 
-React Query loads project lists and details. Query keys include the authenticated user ID to avoid
-cross-account cache reuse.
-
-`src/lib/api.ts` converts Prisma uppercase enum strings to the existing lowercase UI status values.
-Project task, deliverable, and client-request displays are read-only.
-
-Loading uses `ListSkeleton`; errors and empty results use `EmptyState`.
+Running the seed deletes document database rows. Existing physical upload files are not automatically
+purged and may require manual cleanup during development.
 
 ## Validation baseline
 
@@ -177,38 +151,29 @@ npm run test
 npm run build
 ```
 
-Current frontend baseline: 11 passing tests.
+Expected: 17 passing tests.
 
 Backend:
 
 ```sh
 cd server
+npx prisma validate
+npm run prisma:migrate
+npm run prisma:seed
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 ```
 
-Current backend baseline: 13 passing tests.
-
-The existing Prisma migration remains valid. Run `npm run prisma:seed` after pulling this phase so
-the updated membership set replaces Phase 2's all-project memberships.
+Expected: 38 passing tests.
 
 ## Known limitations
 
-- JWTs are stored in local storage.
-- No refresh tokens or server-side logout revocation exist.
-- Authentication-aware SSR is not implemented.
-- Projects are read-only.
-- Dashboard project summaries still use mocks.
-- Documents, uploads, notifications, activity, and settings remain mock-driven.
-- SQLite is for local MVP development.
-- High-severity dependency advisories remain unresolved.
-
-## Next work
-
-Only continue when requested. The smallest useful next phase would connect dashboard project
-summaries to the existing authenticated queries, then add explicitly required mutations or document
-uploads one domain at a time.
-
-Do not add enterprise infrastructure or unrelated frontend features.
+- SQLite and local uploads are single-machine only.
+- JWTs use local storage with no refresh or revocation.
+- Notifications, activity, settings, and reporting remain mocked.
+- Mutation history and notifications are not persisted.
+- Document metadata is intentionally basic.
+- API lists are not paginated.
+- Dependency advisories and non-fatal Vite warnings remain.

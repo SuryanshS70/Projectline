@@ -49,12 +49,14 @@ enum TaskPriority {
 
 enum SubmissionStatus {
   NOT_SUBMITTED
+  READY_FOR_REVIEW
   SUBMITTED
 }
 
 enum ApprovalStatus {
   NOT_STARTED
   IN_PROGRESS
+  PENDING
   SUBMITTED
   APPROVED
   CHANGES_REQUESTED
@@ -63,8 +65,7 @@ enum ApprovalStatus {
 enum RequestStatus {
   OPEN
   IN_PROGRESS
-  RESOLVED
-  DECLINED
+  COMPLETED
 }
 
 model User {

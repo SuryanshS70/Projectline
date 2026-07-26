@@ -83,13 +83,14 @@ export interface Deliverable {
   title: string;
   description: string;
   dueDate: string;
-  submissionStatus: "not_submitted" | "submitted";
+  submissionStatus: "not_submitted" | "ready_for_review" | "submitted";
   approvalStatus: DeliverableStatus;
   version: number;
   feedback?: string;
 }
 
-export type DocumentType = "pdf" | "docx" | "xlsx" | "png" | "zip" | "pptx";
+export type DocumentType =
+  "pdf" | "doc" | "docx" | "xls" | "xlsx" | "png" | "jpg" | "jpeg" | "txt" | "zip" | "pptx";
 export type DocumentApproval = "pending" | "approved" | "rejected" | "not_required";
 export type DocumentVisibility = "internal" | "client_visible";
 
@@ -157,7 +158,7 @@ export interface NotificationRecord {
   audience: Role;
 }
 
-export type RequestStatus = "open" | "in_progress" | "resolved" | "declined";
+export type RequestStatus = "open" | "in_progress" | "completed";
 
 export interface ClientRequest {
   id: string;

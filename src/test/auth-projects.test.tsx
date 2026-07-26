@@ -99,6 +99,32 @@ const apiProjectDetail = {
   ],
 };
 
+const clientDashboard = {
+  role: "CLIENT",
+  metrics: {
+    totalProjects: 1,
+    activeProjects: 1,
+    delayedProjects: 0,
+    pendingDeliverableApprovals: 0,
+  },
+  projects: [apiProject],
+  upcomingMilestones: [],
+  latestDocuments: [],
+};
+
+const vendorDashboard = {
+  role: "VENDOR",
+  metrics: {
+    activeProjects: 1,
+    tasksDueSoon: 0,
+    overdueTasks: 1,
+    deliverablesAwaitingReview: 0,
+  },
+  projects: [apiProject],
+  upcomingMilestones: [],
+  latestDocuments: [],
+};
+
 type MockResult = {
   status?: number;
   body: unknown;
@@ -156,6 +182,9 @@ describe("authentication and project integration", () => {
       "POST /api/auth/login": {
         body: { success: true, data: { token: "client-token", user: clientUser } },
       },
+      "GET /api/dashboard": {
+        body: { success: true, data: clientDashboard },
+      },
     });
     await renderRoute("/login");
 
@@ -168,6 +197,9 @@ describe("authentication and project integration", () => {
     mockApi({
       "POST /api/auth/login": {
         body: { success: true, data: { token: "vendor-token", user: vendorUser } },
+      },
+      "GET /api/dashboard": {
+        body: { success: true, data: vendorDashboard },
       },
     });
     await renderRoute("/login");
@@ -206,6 +238,9 @@ describe("authentication and project integration", () => {
       "GET /api/auth/me": {
         body: { success: true, data: clientUser },
       },
+      "GET /api/dashboard": {
+        body: { success: true, data: clientDashboard },
+      },
     });
 
     await renderRoute("/vendor/dashboard");
@@ -218,6 +253,9 @@ describe("authentication and project integration", () => {
     mockApi({
       "GET /api/auth/me": {
         body: { success: true, data: vendorUser },
+      },
+      "GET /api/dashboard": {
+        body: { success: true, data: vendorDashboard },
       },
     });
 

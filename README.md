@@ -1,76 +1,59 @@
 # Projectline
 
-Projectline is a project-management dashboard with separate client and vendor portals. The React
-frontend now supports real email/password login, JWT session restoration, role-protected routes,
-and read-only project list/detail screens backed by an Express, Prisma, and SQLite API.
+Projectline is an internship-MVP project-management dashboard with separate client and vendor
+portals. The React frontend is backed by an Express, TypeScript, Prisma, and SQLite API.
 
-Documents, notifications, activity feeds, dashboard aggregates, uploads, and settings still use the
-original frontend mock data and simulations.
+The current MVP supports:
+
+- bcrypt email/password login and eight-hour JWT access tokens;
+- client/vendor protected routes and project membership enforcement;
+- project lists and project detail;
+- vendor task and milestone updates;
+- vendor deliverable submission and client deliverable review;
+- client request creation and vendor request status updates;
+- local document upload, list, download, and delete;
+- authenticated client/vendor dashboard metrics.
+
+Notifications, activity feeds, settings, and advanced reporting remain mock-driven.
 
 ## Prerequisites
 
 - Node.js 20 or newer
 - npm 11 or newer
 
-The repository uses separate npm packages and lockfiles for the frontend and backend.
+The frontend and backend are separate npm packages with separate lockfiles.
 
 ## First-time setup
 
-Install frontend dependencies:
+Frontend:
 
 ```sh
 npm install
 ```
 
-Create the optional frontend environment file.
-
-PowerShell:
-
-```powershell
-Copy-Item .env.example .env.local
-```
-
-macOS/Linux:
-
-```sh
-cp .env.example .env.local
-```
-
-The default frontend configuration is:
+Copy `.env.example` to `.env.local` if a custom API URL is required:
 
 ```env
 VITE_API_URL=http://localhost:3001
 ```
 
-Install and configure the backend:
+Backend:
 
 ```sh
 cd server
 npm install
 ```
 
-PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-macOS/Linux:
-
-```sh
-cp .env.example .env
-```
-
-Create and seed the SQLite database:
+Copy `server/.env.example` to `server/.env`, then initialise the local database:
 
 ```sh
 npm run prisma:migrate
 npm run prisma:seed
 ```
 
-## Run the application
+## Run locally
 
-Start the frontend from the repository root:
+Terminal 1, from the repository root:
 
 ```sh
 npm run dev
@@ -78,7 +61,7 @@ npm run dev
 
 Frontend: `http://localhost:5173`
 
-Start the backend in a second terminal:
+Terminal 2:
 
 ```sh
 cd server
@@ -87,31 +70,92 @@ npm run dev
 
 API: `http://localhost:3001`
 
-## Development accounts
-
-These credentials are local development data only:
+Development accounts:
 
 - Client: `client@example.com` / `password123`
 - Vendor: `vendor@example.com` / `password123`
 
-Passwords are bcrypt-hashed in SQLite. The demo buttons on the login page fill these credentials;
-the backend user record determines the portal role.
+## Authentication and access
 
-## Authentication
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 
-- `POST /api/auth/login` verifies the bcrypt password and returns a JWT access token.
-- `GET /api/auth/me` restores the current user from a Bearer token.
-- `POST /api/auth/logout` acknowledges logout; the frontend clears its local session.
-- Access tokens use HS256 and expire after eight hours.
-- Refresh tokens and server-side token revocation are intentionally not implemented.
-- The frontend stores the JWT in local storage for this internship MVP.
+Passwords are bcrypt-hashed. JWTs use HS256 and expire after eight hours. The frontend stores the
+development JWT in local storage and restores the user with `/api/auth/me`.
 
-Project endpoints require `Authorization: Bearer <token>` and enforce `ProjectMember` membership:
+Refresh tokens and server-side token revocation are intentionally not implemented. Logout clears
+the frontend token.
 
-- `GET /api/projects`
-- `GET /api/projects/:projectId`
+All project resources check `ProjectMember`. Missing and unassigned resources consistently return 404.
 
-Unassigned and nonexistent project details both return 404.
+## Project actions
+
+| Endpoint                                 | Role   | Behavior                                      |
+| ---------------------------------------- | ------ | --------------------------------------------- |
+| `PATCH /api/tasks/:taskId`               | Vendor | Status, assignee name, or due date            |
+| `PATCH /api/milestones/:milestoneId`     | Vendor | Progress from 0–100 and milestone status      |
+| `PATCH /api/deliverables/:deliverableId` | Vendor | Mark ready for review or submit               |
+| `PATCH /api/deliverables/:deliverableId` | Client | Approve or request changes with feedback      |
+| `GET /api/projects/:id/client-requests`  | Member | List project requests                         |
+| `POST /api/projects/:id/client-requests` | Client | Create a request                              |
+| `PATCH /api/client-requests/:requestId`  | Vendor | Set `OPEN`, `IN_PROGRESS`, or `COMPLETED`     |
+| `GET /api/dashboard`                     | Member | Return role-specific metrics and project data |
+
+Project actions are intentionally small and direct. There is no workflow engine, audit history, or
+optimistic update layer.
+
+## Documents
+
+Files are stored under:
+
+```text
+server/uploads/
+```
+
+This directory is ignored by Git. File metadata is stored in SQLite.
+
+Endpoints:
+
+- `POST /api/projects/:projectId/documents`
+- `GET /api/projects/:projectId/documents`
+- `GET /api/documents/:documentId/download`
+- `DELETE /api/documents/:documentId`
+
+Uploads use `multipart/form-data`, one file per request, with a 10 MB limit. Allowed types:
+
+- PDF
+- DOC and DOCX
+- XLS and XLSX
+- PNG
+- JPG and JPEG
+- TXT
+- ZIP
+
+Stored filenames are generated by the server. Downloads never expose the stored path. Deletion
+removes both the SQLite record and local file after confirmation in the frontend.
+
+Local disk storage is suitable only for this internship demonstration. S3, cloud storage, document
+versioning, visibility, approval metadata, and soft deletion are future scope.
+
+## Dashboard data
+
+Client metrics from the API:
+
+- total assigned projects;
+- active projects;
+- delayed or at-risk projects;
+- pending deliverable approvals.
+
+Vendor metrics from the API:
+
+- active projects;
+- tasks due in the next seven days;
+- overdue tasks;
+- submitted deliverables awaiting client review.
+
+Dashboard project panels, upcoming milestones, and latest client documents also use authenticated
+backend data. Recent activity remains mocked.
 
 ## Validation
 
@@ -129,43 +173,26 @@ Backend:
 
 ```sh
 cd server
+npx prisma validate
+npm run prisma:migrate
+npm run prisma:seed
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 ```
 
-## Current frontend data sources
+## Known MVP limitations
 
-API-backed:
-
-- Login and current user
-- Client and vendor route access
-- Client and vendor project lists
-- Client and vendor project overview, milestones, tasks, deliverables, and client requests
-
-Still mock-driven:
-
-- Dashboard aggregate/project panels
-- Documents and uploads
-- Notifications
-- Activity feeds and project updates
-- Settings
-
-## MVP limitations
-
-- Project APIs are read-only.
-- JWTs are stored in local storage and cannot be revoked server-side before expiry.
-- Logout clears the frontend token but does not blacklist it.
-- There are no refresh tokens.
-- Documents and uploads are not connected to the backend.
-- SQLite is intended for local MVP development.
-- Dependency installs continue to report unresolved high-severity advisories.
-
-See `docs/IMPLEMENTATION_PLAN.md` for current architecture and next steps, and
-`docs/CODEX_HANDOFF.md` for continuation notes.
+- SQLite and local document storage are for one-machine development.
+- JWTs are stored in local storage and cannot be revoked before expiry.
+- Notifications, activity, settings, and advanced reporting remain mocked.
+- Mutations do not create audit-history or notification records.
+- Documents have no versions, categories, visibility rules, or approval workflow.
+- Dependency installation reports unresolved high-severity advisories.
+- The Vite build retains non-fatal upstream configuration warnings.
 
 ## Lovable synchronisation
 
-This repository remains connected to Lovable. Avoid rebasing, amending, squashing, or force-pushing
-published history because those operations can remove project history from Lovable.
+This repository remains connected to Lovable. Do not rebase, amend, squash, force-push, or otherwise
+rewrite published Git history.

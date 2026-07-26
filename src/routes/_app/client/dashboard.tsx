@@ -1,20 +1,21 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FolderKanban, AlertTriangle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
-import { MetricCard } from "@/components/common/MetricCard";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { ProgressBar } from "@/components/common/ProgressBar";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, FolderKanban } from "lucide-react";
+
 import { ActivityFeed } from "@/components/common/ActivityFeed";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/common/EmptyState";
 import { FileTypeIcon } from "@/components/common/FileTypeIcon";
-import { projects } from "@/data/projects";
-import { getOrgById } from "@/data/organisations";
-import { getUserById, demoClient } from "@/data/users";
+import { ListSkeleton } from "@/components/common/LoadingSkeleton";
+import { MetricCard } from "@/components/common/MetricCard";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProgressBar } from "@/components/common/ProgressBar";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { Card, CardContent } from "@/components/ui/card";
 import { recentActivity } from "@/data/activity";
-import { documents } from "@/data/documents";
-import { milestones } from "@/data/milestones";
-import { formatDate, formatRelative } from "@/lib/format";
+import type { DocumentType } from "@/data/types";
+import { getDashboard } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { formatDate, formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/client/dashboard")({
   head: () => ({
@@ -28,21 +29,19 @@ export const Route = createFileRoute("/_app/client/dashboard")({
 
 function ClientDashboard() {
   const { user } = useAuth();
-  const clientProjects = projects.filter((p) => p.clientOrgId === demoClient.organisationId);
-  const active = clientProjects.filter((p) => p.status !== "completed").length;
-  const delayed = clientProjects.filter(
-    (p) => p.status === "delayed" || p.status === "at_risk",
-  ).length;
-  const pending = documents.filter((d) => d.approval === "pending").length;
+  const dashboardQuery = useQuery({
+    queryKey: ["dashboard", user?.id],
+    queryFn: getDashboard,
+  });
 
-  const upcoming = milestones
-    .filter((m) => m.status !== "completed")
-    .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1))
-    .slice(0, 4);
+  if (dashboardQuery.isPending) return <ListSkeleton rows={6} />;
+  if (dashboardQuery.isError) {
+    return (
+      <EmptyState title="Unable to load dashboard" description={dashboardQuery.error.message} />
+    );
+  }
 
-  const latestDocs = [...documents]
-    .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1))
-    .slice(0, 4);
+  const { metrics, projects, upcomingMilestones, latestDocuments } = dashboardQuery.data;
 
   return (
     <div className="space-y-6">
@@ -52,10 +51,20 @@ function ClientDashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Total projects" value={clientProjects.length} icon={FolderKanban} />
-        <MetricCard label="Active" value={active} icon={Clock} tone="default" />
-        <MetricCard label="Delayed / at risk" value={delayed} icon={AlertTriangle} tone="danger" />
-        <MetricCard label="Pending approvals" value={pending} icon={CheckCircle2} tone="warning" />
+        <MetricCard label="Total projects" value={metrics.totalProjects ?? 0} icon={FolderKanban} />
+        <MetricCard label="Active" value={metrics.activeProjects} icon={Clock} tone="default" />
+        <MetricCard
+          label="Delayed / at risk"
+          value={metrics.delayedProjects ?? 0}
+          icon={AlertTriangle}
+          tone="danger"
+        />
+        <MetricCard
+          label="Pending approvals"
+          value={metrics.pendingDeliverableApprovals ?? 0}
+          icon={CheckCircle2}
+          tone="warning"
+        />
       </div>
 
       <Card className="border-slate-200 shadow-none">
@@ -70,39 +79,31 @@ function ClientDashboard() {
             </Link>
           </div>
           <div className="divide-y divide-slate-200">
-            {clientProjects.map((p) => {
-              const vendor = getOrgById(p.vendorOrgId);
-              const pm = getUserById(p.projectManagerId);
-              return (
-                <Link
-                  key={p.id}
-                  to="/client/projects/$projectId"
-                  params={{ projectId: p.id }}
-                  className="grid gap-3 px-5 py-4 hover:bg-slate-50 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">{p.name}</p>
-                    <p className="truncate text-xs text-slate-500">
-                      {vendor?.name} · PM {pm?.name}
-                    </p>
+            {projects.map((project) => (
+              <Link
+                key={project.id}
+                to="/client/projects/$projectId"
+                params={{ projectId: project.id }}
+                className="grid gap-3 px-5 py-4 hover:bg-slate-50 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">{project.name}</p>
+                  <p className="truncate text-xs text-slate-500">{project.vendorName}</p>
+                </div>
+                <div className="text-xs text-slate-600">
+                  <p className="truncate">{project.description}</p>
+                  <p className="text-slate-500">Due {formatDate(project.endDate)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span>{project.completionPercentage}%</span>
+                    <StatusBadge value={project.health} />
                   </div>
-                  <div className="text-xs text-slate-600">
-                    <p>Next: {p.nextMilestone}</p>
-                    <p className="text-slate-500">Due {formatDate(p.expectedEndDate)}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-slate-600">
-                      <span>{p.completion}%</span>
-                      <span className="text-slate-500">Risk: {p.risk}</span>
-                    </div>
-                    <ProgressBar value={p.completion} className="mt-1.5" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge value={p.status} />
-                  </div>
-                </Link>
-              );
-            })}
+                  <ProgressBar value={project.completionPercentage} className="mt-1.5" />
+                </div>
+                <StatusBadge value={project.status} />
+              </Link>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -119,34 +120,51 @@ function ClientDashboard() {
           <Card className="border-slate-200 shadow-none">
             <CardContent className="p-5">
               <h3 className="mb-4 text-sm font-semibold text-slate-900">Upcoming deadlines</h3>
-              <ul className="space-y-3">
-                {upcoming.map((m) => (
-                  <li key={m.id} className="flex items-start gap-2 text-sm">
-                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{m.name}</p>
-                      <p className="text-xs text-slate-500">{formatDate(m.dueDate)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {upcomingMilestones.length === 0 ? (
+                <p className="text-sm text-slate-500">No upcoming milestones.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {upcomingMilestones.map((milestone) => (
+                    <li key={milestone.id} className="flex items-start gap-2 text-sm">
+                      <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-900">{milestone.name}</p>
+                        <p className="text-xs text-slate-500">{formatDate(milestone.dueDate)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 shadow-none">
             <CardContent className="p-5">
               <h3 className="mb-4 text-sm font-semibold text-slate-900">Latest documents</h3>
-              <ul className="space-y-3">
-                {latestDocs.map((d) => (
-                  <li key={d.id} className="flex items-center gap-3">
-                    <FileTypeIcon type={d.type} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-900">{d.name}</p>
-                      <p className="text-xs text-slate-500">{formatRelative(d.uploadedAt)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {latestDocuments.length === 0 ? (
+                <p className="text-sm text-slate-500">No documents uploaded yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {latestDocuments.map((document) => (
+                    <li key={document.id} className="flex items-center gap-3">
+                      <FileTypeIcon
+                        type={
+                          (document.originalName.split(".").pop()?.toLowerCase() ??
+                            "txt") as DocumentType
+                        }
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900">
+                          {document.originalName}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatRelative(document.createdAt)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </div>

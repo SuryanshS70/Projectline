@@ -1,80 +1,58 @@
 # Projectline Implementation Plan
 
 - **Last updated:** 2026-07-26
-- **Current phase:** JWT authentication, project access, and read-only frontend integration
-- **MVP stack:** React/TanStack Start; Node.js, Express, TypeScript, Prisma, and SQLite
-- **Phase 3 status:** Complete
+- **Current phase:** Final internship MVP integration
+- **Stack:** React/TanStack Start; Express, TypeScript, Prisma, and SQLite
+- **Phase 4 status:** Complete
 
 ## 1. Current outcome
 
-Projectline now supports an end-to-end authenticated project-viewing flow:
+Projectline now demonstrates the important client/vendor workflow end-to-end:
 
-1. A seeded client or vendor signs in with email and password.
-2. The backend verifies the bcrypt password and issues an eight-hour JWT.
-3. The frontend stores the token locally and restores the session through `/api/auth/me`.
-4. Protected routes allow only the portal matching the backend user role.
-5. Project endpoints filter by `ProjectMember`.
-6. Client and vendor project lists/details load read-only data through the API.
+1. A seeded user signs in with a bcrypt-verified password.
+2. The frontend restores an eight-hour JWT session.
+3. Portal routes and every project resource enforce the user's role and `ProjectMember` record.
+4. Project lists, details, dashboards, and documents load from the backend.
+5. Vendors update tasks, milestones, deliverables, and client requests.
+6. Clients create requests and review submitted deliverables.
+7. Both project members can upload, list, download, and delete local documents.
 
-The existing frontend design and route paths are preserved. Document uploads, notifications,
-activity, project updates, settings, dashboard aggregates, and project mutations are outside this
-phase and continue to use mocks or simulations.
+The existing route paths, cards, tabs, badges, tables, and overall visual design are preserved.
 
 ## 2. Frontend architecture
 
-- **Framework:** TanStack Start with TanStack Router file-based routing
-- **UI:** React 19, Tailwind CSS 4, shadcn-style components, and Radix UI
-- **Language:** Strict TypeScript
-- **Server data:** React Query for authenticated project list/detail reads
-- **Authentication state:** Small external store using `useSyncExternalStore`
-- **Token persistence:** Browser local storage for this internship MVP
-- **API client:** One typed fetch client in `src/lib/api.ts`
-- **Environment:** `VITE_API_URL`, defaulting to `http://localhost:3001`
+- TanStack Start and file-based TanStack Router routes
+- React Query for all API reads and mutations
+- A small `useSyncExternalStore` authentication store
+- One typed fetch client in `src/lib/api.ts`
+- Browser local storage for the MVP JWT
+- `VITE_API_URL`, defaulting to `http://localhost:3001`
 
-The store tracks the current user, token-derived session state, authentication loading state, and
-whether the user is authenticated. No Redux or additional state-management package was added.
+Successful project mutations update the existing React Query project record. Document operations
+invalidate their document query. The implementation does not use Redux, generated SDKs, optimistic
+updates, or additional state libraries.
 
-## 3. Frontend routes and protection
+## 3. Frontend routes and data
 
-| Route                         | Data source                                               | Access                                     |
-| ----------------------------- | --------------------------------------------------------- | ------------------------------------------ |
-| `/`                           | Auth store                                                | Redirects to login or the user's dashboard |
-| `/login`                      | Auth API                                                  | Public                                     |
-| `/client/dashboard`           | Mixed mocks/current user                                  | Client only                                |
-| `/client/projects`            | Project API                                               | Client only                                |
-| `/client/projects/:projectId` | Project API plus remaining document/update/activity mocks | Client only                                |
-| `/client/documents`           | Mocks                                                     | Client only                                |
-| `/client/notifications`       | Mocks                                                     | Client only                                |
-| `/client/settings`            | Mocks                                                     | Client only                                |
-| `/vendor/dashboard`           | Mixed mocks/current user                                  | Vendor only                                |
-| `/vendor/projects`            | Project API                                               | Vendor only                                |
-| `/vendor/projects/:projectId` | Project API plus remaining document/activity mocks        | Vendor only                                |
-| `/vendor/documents`           | Mocks                                                     | Vendor only                                |
-| `/vendor/notifications`       | Mocks                                                     | Vendor only                                |
-| `/vendor/settings`            | Mocks                                                     | Vendor only                                |
+| Route                         | Current data source                           |
+| ----------------------------- | --------------------------------------------- |
+| `/login`                      | Authentication API                            |
+| `/client/dashboard`           | Dashboard API plus mock activity              |
+| `/client/projects`            | Project API                                   |
+| `/client/projects/:projectId` | Project, mutation, request, and document APIs |
+| `/client/documents`           | Project and document APIs                     |
+| `/client/notifications`       | Mocks                                         |
+| `/client/settings`            | Mocks                                         |
+| `/vendor/dashboard`           | Dashboard API plus mock activity              |
+| `/vendor/projects`            | Project API                                   |
+| `/vendor/projects/:projectId` | Project, mutation, request, and document APIs |
+| `/vendor/documents`           | Project and document APIs                     |
+| `/vendor/notifications`       | Mocks                                         |
+| `/vendor/settings`            | Mocks                                         |
 
-Unauthenticated protected navigation redirects to `/login`. A client entering a vendor path is
-redirected to `/client/dashboard`; a vendor entering a client path is redirected to
-`/vendor/dashboard`.
+Clients are redirected away from vendor routes and vendors away from client routes.
 
-Protected routes are client-rendered because this MVP stores the JWT in browser local storage.
-
-## 4. Frontend authentication flow
-
-- `src/lib/session.ts` reads, writes, and clears the access token.
-- `src/lib/api.ts` sends JSON, adds the Bearer token, normalises API enum values, and throws
-  consistent `ApiError` objects.
-- `src/lib/auth.ts` performs login, session restoration, logout, and invalid-token cleanup.
-- The pathless `_app` route awaits session restoration and enforces the portal role.
-- The login page submits real credentials.
-- Client/vendor demo buttons fill development credentials but do not choose a role.
-- Sidebar and top-bar identity details come from `/api/auth/me`.
-- A 401 response clears the frontend session; the protected layout redirects to login.
-
-JWT storage is intentionally simple. A production deployment should use a more defensive token
-strategy, but refresh tokens are not part of this MVP.
-
-## 5. Current backend structure
+## 4. Backend structure
 
 ```text
 server/
@@ -82,108 +60,35 @@ server/
     migrations/
     schema.prisma
     seed.ts
+  uploads/                       # local, Git-ignored
   src/
-    config/env.ts
-    db/prisma.ts
     middleware/
       authenticate.ts
       error-handler.ts
       not-found.ts
     routes/
       auth.ts
+      client-requests.ts
+      dashboard.ts
+      deliverables.ts
+      documents.ts
       health.ts
+      milestones.ts
       projects.ts
-    types/express.d.ts
+      tasks.ts
+    uploads.ts
     app.ts
     auth.ts
     server.ts
   test/api.test.ts
 ```
 
-The implementation remains deliberately small: route handlers use Prisma directly where there is
-no reusable business logic.
+Routes use Prisma directly. Shared upload validation lives in `uploads.ts`; there is no service
+framework or policy engine.
 
-## 6. Authentication API
+## 5. Data model
 
-| Method | Endpoint           | Access       | Behavior                                                           |
-| ------ | ------------------ | ------------ | ------------------------------------------------------------------ |
-| `POST` | `/api/auth/login`  | Public       | Verifies email/bcrypt password and returns JWT plus safe user data |
-| `GET`  | `/api/auth/me`     | Bearer token | Returns ID, name, email, role, and organisation name               |
-| `POST` | `/api/auth/logout` | Bearer token | Acknowledges stateless logout                                      |
-
-Tokens:
-
-- use HS256;
-- store the user ID in the JWT subject;
-- expire after eight hours;
-- are verified against `JWT_SECRET`;
-- are accepted only from `Authorization: Bearer <token>`.
-
-No password hash is returned. Invalid credentials use the same message for unknown email and wrong
-password.
-
-Logout does not revoke an already issued token. The browser removes it locally; no blacklist,
-refresh-token table, or Redis dependency exists.
-
-## 7. Project access control
-
-Both project endpoints require authentication:
-
-| Method | Endpoint                   | Behavior                                                      |
-| ------ | -------------------------- | ------------------------------------------------------------- |
-| `GET`  | `/api/projects`            | Returns projects with a membership for the authenticated user |
-| `GET`  | `/api/projects/:projectId` | Returns one assigned project and its requested relations      |
-
-Prisma filters through `Project.members.some.userId`. Project detail returns 404 for both missing
-and unassigned IDs so inaccessible project existence is not disclosed.
-
-The seed now creates these memberships:
-
-- Client Ava: Customer Portal Redesign and ERP Data Migration
-- Vendor Jamal: Customer Portal Redesign and Mobile Application Development
-
-## 8. Project API data
-
-Project summaries include:
-
-- ID, name, description;
-- status, health, and completion percentage;
-- start/end dates;
-- client and vendor names.
-
-Project detail additionally includes Prisma relations for:
-
-- milestones;
-- tasks;
-- deliverables;
-- client requests.
-
-The frontend API client maps Prisma's uppercase enum values to the existing lowercase UI status
-contracts. No generated SDK or large DTO layer was introduced.
-
-## 9. Project frontend integration
-
-API-backed routes no longer import project, milestone, task, deliverable, or client-request mock
-modules.
-
-Project lists preserve the existing card grid, badges, progress bars, dates, and organisation
-labels. Project details preserve the tab layout. The following tabs use API relations:
-
-- Overview
-- Milestones
-- Tasks (vendor)
-- Deliverables
-- Client requests (vendor)
-
-Task, deliverable, and request controls are read-only. The Documents, Updates, and Activity tabs
-continue to use their existing mocks.
-
-Loading uses `ListSkeleton`. Empty and API error cases use `EmptyState`. A project 404 is described
-as missing or not assigned.
-
-## 10. Database schema
-
-No Phase 3 schema migration was required. The current Prisma models remain:
+Current Prisma models:
 
 - `User`
 - `Project`
@@ -194,73 +99,129 @@ No Phase 3 schema migration was required. The current Prisma models remain:
 - `Document`
 - `ClientRequest`
 
-The existing migration remains valid. Only seed membership records changed.
+Phase 4 added Prisma enum values for `READY_FOR_REVIEW`, `PENDING`, and `COMPLETED`. SQLite stores
+these enum fields as text, so Prisma reported the existing database schema as already in sync and no
+new SQL migration was required.
 
-## 11. Testing status
+The seed includes a shared, initially unsubmitted portal deliverable so both vendor submission and
+client review can be demonstrated.
 
-Backend tests: 13 focused Supertest cases covering:
+## 6. Mutation rules
 
-- health;
-- correct login;
-- wrong password and unknown email;
-- missing, valid, and invalid authentication;
-- protected project listing;
-- client/vendor membership filtering;
-- unassigned project denial;
-- assigned project detail relations;
-- unknown API routes.
+### Tasks
 
-Frontend tests: 11 Vitest/React Testing Library cases covering:
+`PATCH /api/tasks/:taskId` requires project membership and a vendor user. It accepts:
 
-- root, login, and not-found rendering;
-- valid client and vendor login redirects;
-- invalid-login feedback;
-- unauthenticated route protection;
-- client/vendor wrong-portal redirects;
-- API-backed project list;
-- API-backed project detail.
+- `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, or `COMPLETED`;
+- an assignee name;
+- a due date.
 
-Manual browser verification also covers both login flows, assigned lists, detail views, wrong-portal
-redirects, logout, and browser-console errors.
+The current frontend edits only task status.
 
-## 12. Remaining mock data
+### Milestones
 
-Keep the files under `src/data/`. They are still used by:
+`PATCH /api/milestones/:milestoneId` requires project membership and a vendor user. Progress must be
+an integer from 0 through 100. Supported statuses are `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`, and
+`DELAYED`.
 
-- client/vendor dashboard project summaries and metrics;
-- documents and uploads;
-- notifications;
-- activity feeds;
-- project updates;
-- settings;
-- document/update/activity tabs inside project detail.
+### Deliverables
 
-Mock project-domain imports were removed only from the four API-backed project routes and the shared
-relation components they render.
+Vendor actions:
 
-## 13. Technical debt and MVP limitations
+- `READY_FOR_REVIEW`
+- `SUBMIT`
 
-- Local-storage JWTs are accessible to browser JavaScript.
+Client actions:
+
+- `APPROVE`
+- `REQUEST_CHANGES`
+
+Requesting changes requires feedback. Client review is allowed only after submission. The rules are
+direct checks in the route; no transition engine exists.
+
+### Client requests
+
+- Project members can list requests.
+- Clients can create requests.
+- Vendors can update assigned-project requests to `OPEN`, `IN_PROGRESS`, or `COMPLETED`.
+- Comments, threads, and request history are not implemented.
+
+## 7. Documents
+
+Multer accepts one `multipart/form-data` file per request. The limit is 10 MB.
+
+Allowed extensions and MIME types cover PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG, TXT, and ZIP.
+Physical filenames use generated UUIDs. API responses expose only safe metadata.
+
+Documents are written to `server/uploads/` and metadata is stored in `Document`. Download and
+delete load the document through a project-membership filter. A safe-path check prevents stored
+paths outside the upload directory from being served or deleted.
+
+Deletion is permanent and removes the local file plus database row. The frontend shows an explicit
+confirmation dialog.
+
+## 8. Dashboard
+
+`GET /api/dashboard` loads only assigned projects and calculates role-specific values in a small,
+straightforward handler.
+
+Client:
+
+- total projects;
+- active projects;
+- delayed/at-risk projects;
+- submitted deliverables pending approval.
+
+Vendor:
+
+- active projects;
+- incomplete tasks due within seven days;
+- incomplete overdue tasks;
+- submitted deliverables awaiting client review.
+
+The response also supplies project summaries, upcoming milestones, and latest documents. Recent
+activity is still mock-driven because no activity model exists.
+
+## 9. Testing status
+
+Backend: 38 Supertest cases covering authentication, project access, task/milestone/deliverable
+permissions, client requests, file validation, upload/download/delete access, dashboard data, health,
+and unknown routes.
+
+Frontend: 17 Vitest/React Testing Library cases covering routes, authentication, portal redirects,
+project reads, task mutation, deliverable UI updates, upload success/error, request creation, and
+dashboard API metrics.
+
+Manual verification covers both seeded roles and the complete mutation/document workflow.
+
+## 10. Remaining mocks
+
+- Notification pages and notification counts
+- Recent activity feeds and project activity
+- Project updates
+- Settings
+- Advanced reporting
+- Historical mock modules retained for screens still using them
+
+## 11. Genuine MVP limitations
+
+- Local SQLite and local uploads are not shared across machines.
+- Local-storage JWTs are accessible to frontend JavaScript.
 - There are no refresh tokens or server-side token revocation.
-- Protected rendering is client-side rather than cookie-aware SSR.
-- Project endpoints are read-only and unpaginated.
-- Dashboard aggregates can differ from API membership/data.
-- Settings still display mock profile fields.
-- Documents, notifications, activity, and uploads are not persisted.
-- SQLite is for local MVP use.
-- Dependency installs continue to report high-severity advisories.
-- The Vite build has non-fatal upstream configuration warnings.
+- Mutations do not generate audit or activity records.
+- Documents have no version history, visibility, approval, category, preview, or recovery.
+- API lists are unpaginated.
+- High-severity package advisories remain unresolved.
+- The upstream Vite configuration emits non-fatal warnings.
 
-## 14. Recommended next MVP work
+## 12. Recommended continuation order
 
-Only proceed when explicitly requested:
+The current internship MVP is demonstration-ready. If additional work is explicitly requested:
 
 1. Resolve dependency advisories.
-2. Replace dashboard project summaries/metrics with the existing authenticated project queries.
-3. Connect settings to the current user where useful.
-4. Add the minimum required project mutations with membership checks.
-5. Add document upload/storage in its own phase.
-6. Connect notifications/activity only when backend models and endpoints are required.
+2. Replace notification/activity mocks only if the demonstration needs them.
+3. Connect settings to current-user data.
+4. Add pagination if seed/demo data grows materially.
 
-Do not add refresh-token rotation, Redis, S3, complex RBAC, or speculative enterprise
-infrastructure for this internship MVP.
+Do not add S3, refresh-token rotation, Redis, WebSockets, microservices, or complex RBAC without a
+new production requirement.

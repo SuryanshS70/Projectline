@@ -83,12 +83,12 @@ function VendorProjectDetail() {
           {
             value: "milestones",
             label: "Milestones",
-            content: <MilestonesList items={project.milestones} />,
+            content: <MilestonesList items={project.milestones} editable />,
           },
           {
             value: "deliverables",
             label: "Deliverables",
-            content: <DeliverablesList items={project.deliverables} />,
+            content: <DeliverablesList items={project.deliverables} role="vendor" />,
           },
           {
             value: "documents",
@@ -98,7 +98,13 @@ function VendorProjectDetail() {
           {
             value: "requests",
             label: "Client requests",
-            content: <ClientRequestsList items={project.clientRequests} />,
+            content: (
+              <ClientRequestsList
+                projectId={project.id}
+                items={project.clientRequests}
+                role="vendor"
+              />
+            ),
           },
           {
             value: "activity",

@@ -3,6 +3,51 @@
 All notable Projectline changes should be documented in this file. This changelog covers Codex-led
 repository work and does not replace Git history or Lovable's project history.
 
+## 2026-07-26 - Basic mutations, local documents, and final MVP integration
+
+### Added
+
+- Added authenticated, membership-filtered task and milestone PATCH endpoints.
+- Added direct deliverable ready/submission/approval/change-request actions with role checks.
+- Added client-request list/create/update endpoints and the `COMPLETED` request status.
+- Added Multer-backed local document upload with generated filenames, allowed-type validation, and
+  a 10 MB limit.
+- Added authenticated document list, download, and permanent delete endpoints.
+- Added `GET /api/dashboard` with client/vendor metrics, assigned projects, milestones, and latest
+  documents.
+- Added a shared API-backed document repository for both portals.
+- Added six focused frontend tests and 25 focused backend tests.
+
+### Changed
+
+- Connected task status, milestone progress/status, deliverable actions, and client requests to the
+  API.
+- Added a client-request tab to client project detail.
+- Replaced simulated uploads in project tabs and both document repositories.
+- Replaced dashboard metrics, project panels, milestones, and latest documents with backend data.
+- Added a shared, unsubmitted portal deliverable to the seed for the vendor/client review demo.
+- Removed document version, visibility, approval, simulated preview, and simulated upload controls
+  that were not persisted.
+- Updated README, implementation plan, and handoff documentation for the completed MVP.
+
+### Fixed
+
+- Downgraded the root ESLint development dependency from 10 to 9.39.5 so a clean `npm install`
+  satisfies `eslint-plugin-react-hooks` without legacy peer-resolution flags.
+
+### Preserved
+
+- Existing Express/TypeScript/Prisma/SQLite/JWT stack.
+- Existing route paths, visual system, project cards, tabs, tables, badges, and layout.
+- Mock notifications, activity feeds, project updates, settings, and advanced reporting.
+
+### Validation
+
+- Backend suite: 38 tests passing.
+- Frontend suite: 17 tests passing.
+- Prisma schema is valid and SQLite reports no pending schema migration.
+- Multer installation reports the existing eight high-severity backend advisories.
+
 ## 2026-07-26 - Authentication, project access, and frontend integration
 
 ### Added

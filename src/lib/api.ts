@@ -77,8 +77,8 @@ export interface ApiDeliverable {
   title: string;
   description: string;
   dueDate: string;
-  submissionStatus: "not_submitted" | "submitted";
-  approvalStatus: DeliverableStatus;
+  submissionStatus: "not_submitted" | "ready_for_review" | "submitted";
+  approvalStatus: DeliverableStatus | "pending";
   clientFeedback?: string | null;
 }
 
@@ -98,6 +98,35 @@ export interface ApiProjectDetail extends ApiProject {
   tasks: ApiTask[];
   deliverables: ApiDeliverable[];
   clientRequests: ApiClientRequest[];
+}
+
+export interface ApiDocument {
+  id: string;
+  projectId: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  createdAt: string;
+  uploadedBy: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface ApiDashboard {
+  role: "CLIENT" | "VENDOR";
+  metrics: {
+    totalProjects?: number;
+    activeProjects: number;
+    delayedProjects?: number;
+    pendingDeliverableApprovals?: number;
+    tasksDueSoon?: number;
+    overdueTasks?: number;
+    deliverablesAwaitingReview?: number;
+  };
+  projects: ApiProject[];
+  upcomingMilestones: ApiMilestone[];
+  latestDocuments: ApiDocument[];
 }
 
 interface RawProject extends Omit<ApiProject, "status" | "health"> {
@@ -143,7 +172,7 @@ async function request<T>(
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
-  if (options.body) {
+  if (options.body && !(typeof FormData !== "undefined" && options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -212,6 +241,49 @@ function mapProjectDetail(project: RawProjectDetail): ApiProjectDetail {
   };
 }
 
+function mapTask(
+  task: Omit<ApiTask, "priority" | "status"> & { priority: string; status: string },
+): ApiTask {
+  return {
+    ...task,
+    priority: lower<TaskPriority>(task.priority),
+    status: lower<TaskStatus>(task.status),
+  };
+}
+
+function mapMilestone(milestone: Omit<ApiMilestone, "status"> & { status: string }): ApiMilestone {
+  return {
+    ...milestone,
+    status: lower<MilestoneStatus>(milestone.status),
+  };
+}
+
+function mapDeliverable(
+  deliverable: Omit<ApiDeliverable, "submissionStatus" | "approvalStatus"> & {
+    submissionStatus: string;
+    approvalStatus: string;
+  },
+): ApiDeliverable {
+  return {
+    ...deliverable,
+    submissionStatus: lower<ApiDeliverable["submissionStatus"]>(deliverable.submissionStatus),
+    approvalStatus: lower<ApiDeliverable["approvalStatus"]>(deliverable.approvalStatus),
+  };
+}
+
+function mapClientRequest(
+  clientRequest: Omit<ApiClientRequest, "priority" | "status"> & {
+    priority: string;
+    status: string;
+  },
+): ApiClientRequest {
+  return {
+    ...clientRequest,
+    priority: lower<TaskPriority>(clientRequest.priority),
+    status: lower<RequestStatus>(clientRequest.status),
+  };
+}
+
 export async function login(email: string, password: string): Promise<LoginResult> {
   return request<LoginResult>(
     "/api/auth/login",
@@ -239,4 +311,164 @@ export async function getProjects(): Promise<ApiProject[]> {
 export async function getProject(projectId: string): Promise<ApiProjectDetail> {
   const project = await request<RawProjectDetail>(`/api/projects/${encodeURIComponent(projectId)}`);
   return mapProjectDetail(project);
+}
+
+export async function updateTask(
+  taskId: string,
+  update: {
+    status?: TaskStatus;
+    assignedTo?: string;
+    dueDate?: string;
+  },
+): Promise<ApiTask> {
+  const task = await request<
+    Omit<ApiTask, "priority" | "status"> & { priority: string; status: string }
+  >(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ...update,
+      status: update.status?.toUpperCase(),
+    }),
+  });
+  return mapTask(task);
+}
+
+export async function updateMilestone(
+  milestoneId: string,
+  update: {
+    progress?: number;
+    status?: MilestoneStatus;
+  },
+): Promise<ApiMilestone> {
+  const milestone = await request<Omit<ApiMilestone, "status"> & { status: string }>(
+    `/api/milestones/${encodeURIComponent(milestoneId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...update,
+        status: update.status?.toUpperCase(),
+      }),
+    },
+  );
+  return mapMilestone(milestone);
+}
+
+export type DeliverableAction = "READY_FOR_REVIEW" | "SUBMIT" | "APPROVE" | "REQUEST_CHANGES";
+
+export async function updateDeliverable(
+  deliverableId: string,
+  action: DeliverableAction,
+  clientFeedback?: string,
+): Promise<ApiDeliverable> {
+  const deliverable = await request<
+    Omit<ApiDeliverable, "submissionStatus" | "approvalStatus"> & {
+      submissionStatus: string;
+      approvalStatus: string;
+    }
+  >(`/api/deliverables/${encodeURIComponent(deliverableId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action, clientFeedback }),
+  });
+  return mapDeliverable(deliverable);
+}
+
+export async function getClientRequests(projectId: string): Promise<ApiClientRequest[]> {
+  const clientRequests = await request<
+    Array<Omit<ApiClientRequest, "priority" | "status"> & { priority: string; status: string }>
+  >(`/api/projects/${encodeURIComponent(projectId)}/client-requests`);
+  return clientRequests.map(mapClientRequest);
+}
+
+export async function createClientRequest(
+  projectId: string,
+  input: {
+    title: string;
+    description: string;
+    priority: TaskPriority;
+    dueDate: string;
+  },
+): Promise<ApiClientRequest> {
+  const clientRequest = await request<
+    Omit<ApiClientRequest, "priority" | "status"> & { priority: string; status: string }
+  >(`/api/projects/${encodeURIComponent(projectId)}/client-requests`, {
+    method: "POST",
+    body: JSON.stringify({
+      ...input,
+      priority: input.priority.toUpperCase(),
+    }),
+  });
+  return mapClientRequest(clientRequest);
+}
+
+export async function updateClientRequest(
+  requestId: string,
+  status: RequestStatus,
+): Promise<ApiClientRequest> {
+  const clientRequest = await request<
+    Omit<ApiClientRequest, "priority" | "status"> & { priority: string; status: string }
+  >(`/api/client-requests/${encodeURIComponent(requestId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: status.toUpperCase() }),
+  });
+  return mapClientRequest(clientRequest);
+}
+
+export async function getDocuments(projectId: string): Promise<ApiDocument[]> {
+  return request<ApiDocument[]>(`/api/projects/${encodeURIComponent(projectId)}/documents`);
+}
+
+export async function uploadDocument(projectId: string, file: File): Promise<ApiDocument> {
+  const body = new FormData();
+  body.append("file", file);
+  return request<ApiDocument>(`/api/projects/${encodeURIComponent(projectId)}/documents`, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function downloadDocument(documentId: string): Promise<Blob> {
+  const headers = new Headers({ Accept: "*/*" });
+  const token = getStoredToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/documents/${encodeURIComponent(documentId)}/download`, {
+      headers,
+    });
+  } catch {
+    throw new ApiError("Unable to reach the Projectline API", 0);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) unauthorizedHandler?.();
+    const body = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new ApiError(
+      body && !body.success ? body.error.message : "Unable to download document",
+      response.status,
+    );
+  }
+
+  return response.blob();
+}
+
+export async function deleteDocument(documentId: string): Promise<void> {
+  await request<{ id: string }>(`/api/documents/${encodeURIComponent(documentId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getDashboard(): Promise<ApiDashboard> {
+  const dashboard = await request<
+    Omit<ApiDashboard, "projects" | "upcomingMilestones"> & {
+      projects: RawProject[];
+      upcomingMilestones: Array<Omit<ApiMilestone, "status"> & { status: string }>;
+    }
+  >("/api/dashboard");
+
+  return {
+    ...dashboard,
+    projects: dashboard.projects.map(mapProject),
+    upcomingMilestones: dashboard.upcomingMilestones.map(mapMilestone),
+  };
 }

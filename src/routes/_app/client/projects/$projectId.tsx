@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { ResponsiveTabs } from "@/components/common/ResponsiveTabs";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { DeliverablesList } from "@/components/project/DeliverablesList";
+import { ClientRequestsList } from "@/components/project/ClientRequestsList";
 import { MilestonesList } from "@/components/project/MilestonesList";
 import { ProjectActivity } from "@/components/project/ProjectActivity";
 import { ProjectDocuments } from "@/components/project/ProjectDocuments";
@@ -82,7 +83,18 @@ function ClientProjectDetail() {
           {
             value: "deliverables",
             label: "Deliverables",
-            content: <DeliverablesList items={project.deliverables} />,
+            content: <DeliverablesList items={project.deliverables} role="client" />,
+          },
+          {
+            value: "requests",
+            label: "Client requests",
+            content: (
+              <ClientRequestsList
+                projectId={project.id}
+                items={project.clientRequests}
+                role="client"
+              />
+            ),
           },
           {
             value: "documents",

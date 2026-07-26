@@ -44,7 +44,7 @@ export const clientRequests: ClientRequest[] = [
     priority: "medium",
     requestedAt: "2026-05-28T10:00:00Z",
     dueDate: "2026-08-10",
-    status: "resolved",
+    status: "completed",
     requesterId: "u-marcus",
   },
   {
